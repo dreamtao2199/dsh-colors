@@ -21,17 +21,17 @@ const check = (ok, label) => {
 };
 
 function activate(seed, opts) {
-  const rec = { overrides: [], injected: [], registered: [], styleEls: [], cleanup: null };
+  const rec = { overrides: [], injected: [], registered: [], styleEls: [], invalidTypes: [], cleanup: null };
 
   const head = { children: [], appendChild(el) { this.children.push(el); } };
   const fakeWindow = {
     __ModuleLoader__: { load(def) { rec.def = def; } },
     localStorage: {
-      store: seed
-        ? { 'dsh-colors.state.v1': JSON.stringify(seed) }
-        : opts && opts.legacy
-          ? { 'dsh-theme-celadon.state.v3': JSON.stringify(opts.legacy) }
-          : {},
+      store: Object.assign(
+        seed ? { 'dsh-colors.state.v1': JSON.stringify(seed) } : {},
+        opts && opts.legacy ? { 'dsh-theme-celadon.state.v3': JSON.stringify(opts.legacy) } : {},
+        opts && opts.panic ? { 'dsh-colors.panic': '1' } : {},
+      ),
       getItem(k) { return Object.prototype.hasOwnProperty.call(this.store, k) ? this.store[k] : null; },
       setItem(k, v) { this.store[k] = v; },
     },
@@ -61,8 +61,22 @@ function activate(seed, opts) {
 
   const plugin = rec.def.factory((name) => {
     if (name !== 'react') throw new Error('unexpected require: ' + name);
-    return {
-      createElement: (...args) => ({ args }),
+    const react = {
+      createElement: (...args) => {
+        // Validate the element TYPE exactly like React does: a style object passed where a
+        // component belongs is React #130 ("Element type is invalid") and blanked a whole page.
+        const type = args[0];
+        const valid =
+          typeof type === 'string' ||
+          typeof type === 'function' ||
+          (type && typeof type === 'object' && Boolean(type.$$typeof));
+        if (!valid) {
+          rec.invalidTypes = (rec.invalidTypes || []).concat([
+            typeof type + ':' + Object.prototype.toString.call(type),
+          ]);
+        }
+        return { args };
+      },
       useState: (v) => [v, () => {}],
       useEffect: (fn) => {
         // run the effect body so resident components really report and repaint
@@ -77,6 +91,8 @@ function activate(seed, opts) {
       useRef: (v) => ({ current: v }),
       Fragment: 'fragment',
     };
+    rec.react = react;
+    return react;
   });
 
   const ctx = {
@@ -179,11 +195,12 @@ check(css.includes('--dsw-alias-state-business-primary:'), 'primary channel carr
 
 // ------------------------------------------------------------------------- slots
 
-check(rec.injected.length === 6, 'six seats injected (' + rec.injected.join(', ') + ')');
+check(rec.injected.length === 5, 'five seats injected (' + rec.injected.join(', ') + ')');
 check(rec.injected.includes('settings.section'), 'the panel is a settings PAGE (settings.section), not a General row');
 check(!rec.injected.includes('sidebar.panellist'), 'the redundant sidebar button is GONE (the panel lives in Settings)');
 check(!rec.injected.includes('main'), 'no main-column workbench is registered any more');
-check(rec.injected.includes('sidebar.footer.action'), 'the quick entry is registered in the sidebar FOOTER band (beside 插件广场)');
+check(!rec.injected.includes('sidebar.footer.action'), 'the footer entry is gone again (the host stacks that band vertically, so 并排 was impossible)');
+check(!rec.injected.includes('settings.general.item'), 'the temporary General-row probe is gone (the panel is a single standalone page)');
 check(rec.injected.includes('conversation.composer.dock'), 'status chip installed under the composer');
 check(rec.injected.includes('shell.overlay'), 'frame-wide workspace bar installed into shell.overlay');
 check(rec.injected.includes('sidebar.session.row.leading'), 'session colour bar seat requested');
@@ -414,8 +431,8 @@ check(/chip:\s*false/.test(src), 'PRD FR-7 default is encoded in the shipped bun
 
 const noEvents = activate(null, { throwingOn: true });
 check(
-  noEvents.rec.registered.length === 6,
-  'when the event API throws, all six seats are still registered',
+  noEvents.rec.registered.length === 5,
+  'when the event API throws, all five seats are still registered',
 );
 check(
   noEvents.rec.styleEls.length > 0 && noEvents.rec.styleEls[0].textContent.includes('--dsw-alias-bg-base:'),
@@ -423,7 +440,7 @@ check(
 );
 
 const refused = activate(null, { throwingRegister: true });
-check(refused.rec.injected.length === 6, 'when slot registration is refused, every seat is still attempted');
+check(refused.rec.injected.length === 5, 'when slot registration is refused, every seat is still attempted');
 check(refused.rec.overrides.length >= 4, 'when slot registration is refused, the layers are still pushed');
 
 const rendered = activate(null);
@@ -589,49 +606,83 @@ check(
   collectText(sectionSeat.component({ useSessions: () => { throw new Error('a host hook must never be called by this panel'); } })).length > 20,
   'the panel calls no host hooks — a hook that exists in one seat but not another changes the hook count and blanks the page',
 );
-check(/gradientText:\s*false/.test(src), 'the shipped default keeps 正文渐变 OFF (it damaged inline code inside bold text)');
-check(
-  src.indexOf('strong :where(code,kbd,samp,a,em)') >= 0,
-  'even when enabled, the gradient restores descendant colours (no invisible code chips)',
-);
-check(src.indexOf('故障【render:') >= 0, 'a render failure is shown as text, not swallowed into a blank area');
-// --------------------------------------------- the footer quick entry (beside 插件广场)
+check(!/gradientText/.test(src) && !/background-clip:text/.test(src), '正文渐变 is gone entirely — no switch, no CSS (it damaged inline code inside bold runs)');
 
-const footerSeat = rendered.rec.registered.find((r) => r.opts.name === 'sidebar.footer.action');
-check(Boolean(footerSeat) && footerSeat.opts.order === 9, 'the footer entry sits at order 9, right after skillhub-plaza (order 8)');
-const footerWide = collectText(footerSeat.component({ wide: true })).join(' ');
-check(footerWide.indexOf('多彩Harness') >= 0, 'wide sidebar: the button shows its label');
-const footerRail = collectText(footerSeat.component({ wide: false })).join(' ');
-check(footerRail.indexOf('多彩Harness') < 0, 'rail sidebar: the label is dropped, the icon stays');
-const footerNode = footerSeat.component({ wide: true });
-function findFooter(node) {
-  if (!node || typeof node !== 'object') return null;
+check(src.indexOf('故障【render:') >= 0, 'a render failure is shown as text, not swallowed into a blank area');
+// ----------------------------------- marks follow the theme (slot index, not frozen colour)
+
+const slotA = activate({ paletteId: 'ruyao-celadon', sessionColors: { s1: 0 } });
+const slotB = activate({ paletteId: 'cinnabar', sessionColors: { s1: 0 } });
+const reMark = /\[data-session-id="s1"\]\{--dsh-session-mark:(#[0-9A-F]{6})/;
+const colorA = reMark.exec(slotA.rec.styleEls[0].textContent);
+const colorB = reMark.exec(slotB.rec.styleEls[0].textContent);
+check(Boolean(colorA) && Boolean(colorB), 'a slot-index mark is painted from the active palette');
+check(colorA && colorB && colorA[1] !== colorB[1], 'the SAME slot yields different colours under different palettes — marks follow the theme');
+const legacyMark = activate({ paletteId: 'ruyao-celadon', sessionColors: { s1: '#2F7D6B' } });
+check(
+  /\[data-session-id="s1"\]\{--dsh-session-mark:#2F7D6B/.test(legacyMark.rec.styleEls[0].textContent),
+  'a pre-existing hex mark is still honoured verbatim (no colour is silently changed)',
+);
+// ------------------------------------------- the two boards are sorted (length, then pinyin)
+
+function chipLabelsOf(node, out) {
+  const acc = out || [];
+  if (!node || typeof node !== 'object') return acc;
   if (Array.isArray(node)) {
-    for (const child of node) {
-      const hit = findFooter(child);
-      if (hit) return hit;
-    }
-    return null;
+    for (const child of node) chipLabelsOf(child, acc);
+    return acc;
   }
   if (node.args) {
     const props = node.args[1] || {};
-    if (props['data-dsh-footer']) return node;
-    for (const child of node.args.slice(2)) {
-      const hit = findFooter(child);
-      if (hit) return hit;
+    const children = node.args.slice(2);
+    if (props['data-dsh-chip']) {
+      const label = children.find((c) => typeof c === 'string');
+      if (label) acc.push(label);
     }
+    for (const child of children) chipLabelsOf(child, acc);
   }
-  return null;
+  return acc;
 }
-const footerButton = findFooter(footerNode);
-check(Boolean(footerButton), 'the footer entry renders a button');
-const footerBefore = rendered.rec.overrides.length;
-if (footerButton) footerButton.args[1].onClick();
+
+const byLabel = (a, b) => (a.length - b.length) || a.localeCompare(b, 'zh-Hans-CN');
+const boardChips = chipLabelsOf(sectionSeat.component({}));
+const paletteNames = palettesData.palettes.map((p) => p.name);
+const expectedPalettes = paletteNames.slice().sort(byLabel);
+const actualPalettes = boardChips.filter((l) => paletteNames.indexOf(l) >= 0);
 check(
-  rendered.rec.overrides.length > footerBefore,
-  'one click on the footer button rolls a new theme through the guarded paint path',
+  JSON.stringify(actualPalettes) === JSON.stringify(expectedPalettes),
+  'the colour board is sorted by character count, then pinyin (' + actualPalettes.slice(0, 5).join(' / ') + ' …)',
 );
+check(boardChips[0] === '官方原色', 'the "official colours" cell stays pinned at the head (it is a position, not a colour)');
+
+const effectNames = ['毛玻璃', '渐变雾面', '纤维', '云絮', '和纸', '牛皮纸', '亚麻', '直纹纸', '网点', '扫描线', '硬描边', '焦点描边', '浮层投影', '描金滚动条'];
+const expectedEffects = effectNames.slice().sort(byLabel);
+const actualEffects = boardChips.filter((l) => effectNames.indexOf(l) >= 0);
+check(
+  JSON.stringify(actualEffects) === JSON.stringify(expectedEffects),
+  'the effect board is sorted the same way and lists all 14 (' + actualEffects.slice(0, 5).join(' / ') + ' …)',
+);
+check(
+  boardChips.indexOf('无') === boardChips.indexOf(boardChips.filter((l) => effectNames.indexOf(l) >= 0)[0]) - 1,
+  'the "no effect" cell sits immediately before the effect board',
+);
+// ------------------------------------------------- the DevTools kill switch must work
+
+const panicked = activate(null, { panic: true });
+const panicSsl = panicked.rec.styleEls[0] ? panicked.rec.styleEls[0].textContent : '';
+check(panicSsl.indexOf('--dsw-alias-bg-base:') < 0, 'panic switch: localStorage[dsh-colors.panic] stops every token from being written');
+check(panicked.rec.overrides.every((o) => Object.keys(o.tokens).length === 0), 'panic switch: all four layers are cleared like safe mode');
 // ---------------------------------------------------------------------- data sanity
+
+check(
+  rendered.rec.invalidTypes.length === 0,
+  'no element is created with an invalid type (React #130 class) — got ' + JSON.stringify(rendered.rec.invalidTypes || []),
+);
+
+// Test the test: a deliberately bad element type MUST be recorded, otherwise the check above
+// passes vacuously (which is exactly how the panel bug reached a build).
+if (rendered.rec.react) rendered.rec.react.createElement({ not: 'a component' }, null);
+check(rendered.rec.invalidTypes.length === 1, 'the element-type guard actually fires on a bad type (test the test)');
 
 check(palettesData.palettes.length === 22, 'bundle carries all 22 palettes');
 check(

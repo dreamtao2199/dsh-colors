@@ -11,7 +11,7 @@
 |---|---|
 | 配色库 | 22 套：Pantone 年度色 4 · 中国传统色 14 · 莫兰迪高级灰 4；＋「官方原色」位置 |
 | 表面效果 | 14 种，**单选**：毛玻璃 / 渐变雾面 / 纤维 / 云絮 / 和纸 / 牛皮纸 / 亚麻 / 直纹纸 / 网点 / 扫描线 / 硬描边 / 焦点描边 / 浮层投影 / 描金滚动条；**与配色叠加，互不覆盖** |
-| 字体渐变 | 由「作用范围」档位承载：克制档平色，标准/张扬档用主题渐变（`@supports` 保护，不支持时自动回退） |
+| 展示顺序 | 配色库与表面效果按**字数升序 → 同字数按拼音**排列（「官方原色」/「无」固定在最前） |
 | 随机 | 「随机一套」＝配色 × 效果 随机组合（22×14 = 308 种），带**锁配色 / 锁效果**两把锁；「随机排程」＝给四个时辰各抽一套 |
 | 自动切换 | 间隔（1 小时 / 1 天 / 1 周 / 1 月，锚定固定钟点）与**十二时辰**（四段，名称取起始时辰）互斥 |
 | 手动优先 | 手动选色（含随机）**优先到下一个时段边界**，到点自动交还排程——不再永久关闭自动切换 |
@@ -40,7 +40,7 @@ index.js         宿主半（空壳，令牌层全部在客户端）
 src/lib/         引擎：color / palette-layer / accents / finishes / schedule / status / breaker
 src/client/      界面与席位：state / panel / workbench / avatar-editor / session-colors / dock-signal / workspace-bar / account-row / index
 src/data/        palettes.json（22 套）· textures.js（8 张 128×128 无缝贴图，base64）
-src/styles/      markdown-note.js（对话标注 + 字体渐变）
+src/styles/      markdown-note.js（对话标注：只换色，无底纹、无渐变）
 tests/           四套断言（676 项）
 docs/            PRD / ARCHITECTURE / USER-GUIDE / TEST-REPORT / RESTORE / HANDOFF
 ```

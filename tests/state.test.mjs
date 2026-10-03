@@ -207,6 +207,16 @@ check(
   'hostile persisted marks are dropped, valid ones kept',
 );
 
+const slotStore = createStore(storageWith());
+slotStore.setSessionColor('s1', 3);
+check(slotStore.snapshot().sessionColors.s1 === 3, 'a mark can be stored as a SLOT index (so it follows the theme)');
+slotStore.setSessionColor('s1', 99);
+check(slotStore.snapshot().sessionColors.s1 === 5, 'a slot index is clamped to the six-colour board');
+const mixedMarks = createStore(storageWith({ sessionColors: { a: '#123456', b: 2, c: 'nope', d: 9 } }));
+check(
+  JSON.stringify(mixedMarks.snapshot().sessionColors) === JSON.stringify({ a: '#123456', b: 2 }),
+  'legacy hex marks survive, slot indices survive, junk is dropped',
+);
 // ------------------------------------------------------- the rename must not lose state
 
 const legacyBacking = storageWith();

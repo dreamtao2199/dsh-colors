@@ -9,49 +9,18 @@
  * rewriting — and because the colors come from tokens, the annotation tint follows whichever
  * color system is active.
  *
+ * 字体渐变 was REMOVED here (0.9.11). It set `color:transparent` on `strong`, and an inline
+ * `code` inside a bold run inherits that transparency while keeping its own light background —
+ * so the chip rendered as a blank block until it was selected. The session-title gradient the
+ * user actually wanted would need host-DOM painting, which this plugin does not do.
+ *
  * Bundling note: `@bundle:strip` blocks are test-only and removed by the bundler.
  */
 
 const MARKDOWN_CONTAINER = '[class*="_markdown_"]';
 
-/**
- * 字体渐变 (gradient text) for headings and emphasis — tier-gated by the caller.
- *
- * Two safety rules, both learned the hard way:
- *   * the whole block sits inside `@supports`: without `background-clip:text` a
- *     `color:transparent` heading would render as INVISIBLE text;
- *   * both gradient stops are already-validated colours (`--dsh-note-accent` clears 4.5:1 on
- *     the palette background by construction), so the lightest stop is still readable — the
- *     grader checks the LIGHTEST stop, not the average.
- */
-function gradientTextCss() {
+function markdownNoteCss() {
   const c = MARKDOWN_CONTAINER;
-  return (
-    '@supports ((background-clip:text) or (-webkit-background-clip:text)){' +
-    c + ' :where(h1,h2,h3,h4,h5,h6),' +
-    c + ' :where(p,li,td,dd,blockquote) strong{' +
-    'background-image:linear-gradient(96deg,' +
-    'var(--dsw-alias-link,currentColor) 0%,' +
-    'var(--dsh-note-accent,var(--dsw-alias-link,currentColor)) 100%);' +
-    '-webkit-background-clip:text;background-clip:text;' +
-    '-webkit-text-fill-color:transparent;color:transparent;' +
-    '}' +
-    c + ' :where(h1,h2,h3,h4,h5,h6) strong{' +
-    'background-image:none;-webkit-text-fill-color:currentColor;color:inherit;}' +
-    // A transparent `strong` passes transparency DOWN to its children: an inline `code` inside
-    // it kept its own (light) background and inherited `color:transparent`, rendering as a
-    // blank block until selected. Descendants therefore get their colour back explicitly.
-    c + ' strong :where(code,kbd,samp,a,em),' +
-    c + ' :where(h1,h2,h3,h4,h5,h6) :where(code,kbd,samp,a,em){' +
-    '-webkit-text-fill-color:currentColor;color:var(--dsw-alias-label-primary);' +
-    'background-clip:border-box;-webkit-background-clip:border-box;background-image:none;}' +
-    '}'
-  );
-}
-
-function markdownNoteCss(options) {
-  const c = MARKDOWN_CONTAINER;
-  const withGradient = Boolean(options && options.gradientText);
   return [
     // Emphasis is COLOUR ONLY — no background block. The colour is the palette's paired
     // counter-colour (`--dsh-note-accent`), falling back to the link colour.
@@ -78,9 +47,9 @@ function markdownNoteCss(options) {
 
     // tables keep hairlines that follow the accent tier
     c + ' table{border-color:var(--dsw-alias-border-l2);}',
-  ].join('') + (withGradient ? gradientTextCss() : '');
+  ].join('');
 }
 
 /* @bundle:strip-start */
-export { MARKDOWN_CONTAINER, gradientTextCss, markdownNoteCss };
+export { MARKDOWN_CONTAINER, markdownNoteCss };
 /* @bundle:strip-end */

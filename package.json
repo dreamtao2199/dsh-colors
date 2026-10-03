@@ -1,6 +1,6 @@
 {
   "name": "dsh-colors",
-  "version": "0.9.10",
+  "version": "0.9.11",
   "private": true,
   "description": "多彩Harness — 22 light-only palettes (Pantone / Chinese traditional / Morandi), 14 composable surface effects, 12-shichen clock rotation, workspace binding, per-session colour marks and an optional account row for DeepSeek Harness.",
   "type": "module",

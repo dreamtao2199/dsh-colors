@@ -62,15 +62,26 @@ function swatchButton(h, color, active, onClick, key) {
   });
 }
 
+/** The colour a mark resolves to right now: a slot index follows the palette, a hex is literal. */
+function markColorOf(raw, palette) {
+  if (typeof raw === 'number') {
+    const options = markColors(palette);
+    return options[raw] || null;
+  }
+  return typeof raw === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw) ? raw : null;
+}
+
 /** Session row decoration: a 3px bar, only for marked sessions. */
 function createSessionMark(deps) {
   const h = deps.h;
   const store = deps.store;
+  const paletteById = deps.paletteById;
   return function SessionMark(props) {
     const [state, setState] = React.useState(store.snapshot());
     React.useEffect(() => store.subscribe((next) => setState(Object.assign({}, next))), []);
     const id = sessionIdOf(props);
-    const color = id && state.sessionColors ? state.sessionColors[id] : null;
+    const raw = id && state.sessionColors ? state.sessionColors[id] : null;
+    const color = markColorOf(raw, state.paletteId ? paletteById(state.paletteId) : null);
     if (!color) return null;
     return h('span', {
       'data-dsh-session-mark': 'true',
@@ -114,7 +125,7 @@ function createSessionMenu(deps) {
       },
       h('span', { style: { color: 'var(--dsw-alias-label-tertiary)' } }, '颜色标记'),
       options.map((color, index) =>
-        swatchButton(h, color, current === color, () => store.setSessionColor(id, color), 'm' + index),
+        swatchButton(h, color, current === index, () => store.setSessionColor(id, current === index ? null : index), 'm' + index),
       ),
       h(
         'button',
@@ -133,5 +144,5 @@ function createSessionMenu(deps) {
 }
 
 /* @bundle:strip-start */
-export { sessionIdOf, markOptions, swatchButton, createSessionMark, createSessionMenu };
+export { sessionIdOf, markOptions, markColorOf, swatchButton, createSessionMark, createSessionMenu };
 /* @bundle:strip-end */

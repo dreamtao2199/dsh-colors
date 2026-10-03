@@ -116,8 +116,17 @@ function safeComponent(Component, label) {
   };
 }
 
-function createPlugin(deps) {
-  const h = deps.h;
+/** Emergency kill switch readable from DevTools: `localStorage['dsh-colors.panic'] = '1'`. */
+function panicFlag() {
+  try {
+    if (typeof window === 'undefined' || !window.localStorage) return false;
+    return window.localStorage.getItem('dsh-colors.panic') === '1';
+  } catch (err) {
+    return false;
+  }
+}
+
+function createPlugin(deps) {  const h = deps.h;
   const palettes = deps.palettes;
   const finishes = deps.finishes;
   const paletteById = (id) => palettes.find((p) => p.id === id) || null;
@@ -238,7 +247,7 @@ function createPlugin(deps) {
         const now = new Date();
 
         // Kill switch first: safe mode paints nothing at all, not even the palette.
-        if (state.safeMode) {
+        if (state.safeMode || panicFlag()) {
           pushLayer(SOURCE, {});
           pushLayer(SOURCE + ':accents', {});
           pushLayer(SOURCE + ':finish', {});
@@ -249,7 +258,7 @@ function createPlugin(deps) {
           runtime.diag.lastPaletteId = null;
           runtime.diag.expectAccent = null;
           runtime.diag.finish = null;
-          runtime.diag.lastSource = 'safe-mode';
+          runtime.diag.lastSource = state.safeMode ? 'safe-mode' : 'panic-switch';
           return;
         }
 
@@ -287,13 +296,13 @@ function createPlugin(deps) {
         const merged = mergeLayers([core, accents, finish.tokens, workspaceLayer, harmony, note]);
         css += cssFromMerged(merged);
         css += finish.css;
-        // 字体渐变 is an EXPLICIT opt-in (default off): as a tier side effect it damaged real
-        // conversation text — a `strong` gradient made an inline `code` inside it inherit
-        // `color:transparent`, so the chip rendered as a blank block until selected.
+        // Annotations are colour-only. 字体渐变 was removed entirely: the session-title gradient
+        // the user wanted would require host-DOM painting, and the conversation-text variant
+        // damaged inline code inside bold runs.
         if (state.status.annotations) {
-          css += markdownNoteCss({ gradientText: Boolean(state.status.gradientText) });
+          css += markdownNoteCss();
         }
-        css += sessionMarkCss(state);
+        css += sessionMarkCss(state, palette);
         setCss(css);
 
         const manualId = manualOverride(state, now);
@@ -314,21 +323,25 @@ function createPlugin(deps) {
       }
 
       /**
-       * Session colour marks (PRD FR-10) as a pure stylesheet rule.
+       * Session colour marks (PRD FR-10) — the stylesheet half.
        *
-       * The mark is keyed by the host's own `data-session-id` attribute, so painting is
-       * DECLARATIVE: no DOM mutation, nothing to go stale, and if the host renames the
-       * attribute the worst case is a mark that stops showing (the panel still lists it).
-       * One rule per marked session, capped because the marks themselves are capped.
+       * HONEST STATUS: this half is currently INERT. It keys on a `data-session-id` attribute
+       * that this host does NOT render (verified by searching the shipped client for the
+       * literal), so what actually paints the bar is the official
+       * `sidebar.session.row.leading` seat. The rules are kept because they cost nothing, are
+       * declarative (no DOM mutation), and would start working by themselves if a future host
+       * version exposes that attribute — but nothing here should be credited for the bar.
+       *
+       * Marks are resolved from the ACTIVE palette by slot index, so a mark follows the theme.
        */
-      function sessionMarkCss(state) {
+      function sessionMarkCss(state, palette) {
         const marks = state.sessionColors || {};
         const ids = Object.keys(marks).slice(0, 200);
         if (!ids.length) return '';
         let css = '';
         for (const id of ids) {
-          const color = marks[id];
-          if (!/^#[0-9a-fA-F]{6}$/.test(color)) continue;
+          const color = markColorOf(marks[id], palette);
+          if (!color || !/^#[0-9a-fA-F]{6}$/.test(color)) continue;
           const safe = id.replace(/["\\]/g, '');
           const sel = '[data-session-id="' + safe + '"]';
           css +=
@@ -515,18 +528,14 @@ function createPlugin(deps) {
       // redundant. The seat pair (`sidebar.panellist` + `main`) is documented in
       // docs/ARCHITECTURE.md for anyone who wants it back.
 
-      // The permanent quick entry: the SAME band as 插件广场 (skillhub-plaza, order 8), so this
-      // button lands right beside it (order 9) instead of in the main navigation.
-      try {
-        ctx.slots.inject('sidebar.footer.action', () =>
-          ctx.slots.register(
-            { name: 'sidebar.footer.action', id: PANEL_ID, order: 9, label: '多彩Harness' },
-            safeComponent(createFooterAction({ h, store, runtime, paletteById }), 'footer-action'),
-          ),
-        );
-      } catch (err) {
-        recordFault('slot:footer-action', err);
-      }
+      // NOTE: a quick entry in `sidebar.footer.action` was tried (order 9, right after
+      // skillhub-plaza) and REVERTED — the host stacks footer actions vertically, so it could
+      // not sit beside 插件广场 as asked. The panel therefore lives in Settings only, and the
+      // seat contract is documented in docs/ARCHITECTURE.md if it is ever wanted again.
+
+      // The temporary General-row probe has been removed: the blank page was NOT a seat problem —
+      // it was React #130 from `h(ROW, …)` inside the panel (a style object used as an element
+      // type). The panel now lives in ONE place: the standalone settings page.
 
       try {
         ctx.slots.inject('conversation.composer.dock', () =>
@@ -554,7 +563,7 @@ function createPlugin(deps) {
         ctx.slots.inject('sidebar.session.row.leading', () =>
           ctx.slots.register(
             { name: 'sidebar.session.row.leading', id: SESSION_BAR_ID, order: 10 },
-            safeComponent(createSessionMark({ h, store }), 'session-mark'),
+            safeComponent(createSessionMark({ h, store, paletteById }), 'session-mark'),
           ),
         );
       } catch (err) {

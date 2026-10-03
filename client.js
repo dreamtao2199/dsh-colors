@@ -1,7 +1,7 @@
 /**
  * GENERATED FILE — do not edit by hand.
  * Source of truth: src/ ; rebuild with `node build.mjs`.
- * dsh-colors v0.9.10
+ * dsh-colors v0.9.11
  */
 window.__ModuleLoader__.load({
   id: 'dsh-colors',
@@ -1125,49 +1125,18 @@ window.__ModuleLoader__.load({
    * rewriting — and because the colors come from tokens, the annotation tint follows whichever
    * color system is active.
    *
+   * 字体渐变 was REMOVED here (0.9.11). It set `color:transparent` on `strong`, and an inline
+   * `code` inside a bold run inherits that transparency while keeping its own light background —
+   * so the chip rendered as a blank block until it was selected. The session-title gradient the
+   * user actually wanted would need host-DOM painting, which this plugin does not do.
+   *
    * Bundling note: `@bundle:strip` blocks are test-only and removed by the bundler.
    */
 
   const MARKDOWN_CONTAINER = '[class*="_markdown_"]';
 
-  /**
-   * 字体渐变 (gradient text) for headings and emphasis — tier-gated by the caller.
-   *
-   * Two safety rules, both learned the hard way:
-   *   * the whole block sits inside `@supports`: without `background-clip:text` a
-   *     `color:transparent` heading would render as INVISIBLE text;
-   *   * both gradient stops are already-validated colours (`--dsh-note-accent` clears 4.5:1 on
-   *     the palette background by construction), so the lightest stop is still readable — the
-   *     grader checks the LIGHTEST stop, not the average.
-   */
-  function gradientTextCss() {
+  function markdownNoteCss() {
     const c = MARKDOWN_CONTAINER;
-    return (
-      '@supports ((background-clip:text) or (-webkit-background-clip:text)){' +
-      c + ' :where(h1,h2,h3,h4,h5,h6),' +
-      c + ' :where(p,li,td,dd,blockquote) strong{' +
-      'background-image:linear-gradient(96deg,' +
-      'var(--dsw-alias-link,currentColor) 0%,' +
-      'var(--dsh-note-accent,var(--dsw-alias-link,currentColor)) 100%);' +
-      '-webkit-background-clip:text;background-clip:text;' +
-      '-webkit-text-fill-color:transparent;color:transparent;' +
-      '}' +
-      c + ' :where(h1,h2,h3,h4,h5,h6) strong{' +
-      'background-image:none;-webkit-text-fill-color:currentColor;color:inherit;}' +
-      // A transparent `strong` passes transparency DOWN to its children: an inline `code` inside
-      // it kept its own (light) background and inherited `color:transparent`, rendering as a
-      // blank block until selected. Descendants therefore get their colour back explicitly.
-      c + ' strong :where(code,kbd,samp,a,em),' +
-      c + ' :where(h1,h2,h3,h4,h5,h6) :where(code,kbd,samp,a,em){' +
-      '-webkit-text-fill-color:currentColor;color:var(--dsw-alias-label-primary);' +
-      'background-clip:border-box;-webkit-background-clip:border-box;background-image:none;}' +
-      '}'
-    );
-  }
-
-  function markdownNoteCss(options) {
-    const c = MARKDOWN_CONTAINER;
-    const withGradient = Boolean(options && options.gradientText);
     return [
       // Emphasis is COLOUR ONLY — no background block. The colour is the palette's paired
       // counter-colour (`--dsh-note-accent`), falling back to the link colour.
@@ -1194,7 +1163,7 @@ window.__ModuleLoader__.load({
 
       // tables keep hairlines that follow the accent tier
       c + ' table{border-color:var(--dsw-alias-border-l2);}',
-    ].join('') + (withGradient ? gradientTextCss() : '');
+    ].join('');
   }
 
   /* stripped for bundle */
@@ -1288,13 +1257,7 @@ window.__ModuleLoader__.load({
       /** The chip is opt-in; the seat still mounts because it carries the workspace signal. */
       chip: false,
       annotations: true,
-      /**
-       * 正文/标题渐变上色。Default CLOSED on purpose: as a tier side effect it damaged real
-       * conversation text — a `strong` gradient made an inline `code` inside it inherit
-       * `color:transparent`, so the chip rendered as a blank block until it was selected.
-       * It is now an explicit switch, and the CSS restores descendant colours regardless.
-       */
-      gradientText: false,
+
       /**
        * Harmonise the host's three semantic state colours (success / warn / error) toward the
        * active palette. The running indicator is deliberately NOT touched: its colour comes from
@@ -1342,9 +1305,13 @@ window.__ModuleLoader__.load({
     for (const key of Object.keys(marks)) {
       const value = marks[key];
       if (typeof key !== 'string' || !key) continue;
-      if (typeof value !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(value)) continue;
-      if (kept >= SESSION_COLOR_LIMIT) break;
-      clean[key] = value.toUpperCase();
+      if (kept >= SESSION_COLOR_LIMIT) continue;
+      // A mark is stored as a SLOT INDEX (0-5) so it re-derives from whatever palette is active:
+      // change the theme and every mark follows it instead of freezing yesterday's colour. A raw
+      // hex is still accepted (and kept) for state saved before this change.
+      if (typeof value === 'number' && value >= 0 && value < 6) clean[key] = Math.floor(value);
+      else if (typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) clean[key] = value.toUpperCase();
+      else continue;
       kept += 1;
     }
     state.sessionColors = clean;
@@ -1550,11 +1517,13 @@ window.__ModuleLoader__.load({
       patch({ rhythm: Object.assign({}, state.rhythm, { segments }), manual: noManual() });
     }
 
-    function setSessionColor(sessionId, color) {
+    /** `value` is a SLOT INDEX (0-5) or null to clear; a legacy hex string is passed through. */
+    function setSessionColor(sessionId, value) {
       if (typeof sessionId !== 'string' || !sessionId) return;
       const marks = Object.assign({}, state.sessionColors);
-      if (!color) delete marks[sessionId];
-      else marks[sessionId] = String(color).toUpperCase();
+      if (value === null || value === undefined || value === '') delete marks[sessionId];
+      else if (typeof value === 'number') marks[sessionId] = Math.max(0, Math.min(5, Math.floor(value)));
+      else marks[sessionId] = String(value).toUpperCase();
       patch({ sessionColors: marks });
     }
 
@@ -1648,15 +1617,26 @@ window.__ModuleLoader__.load({
     });
   }
 
+  /** The colour a mark resolves to right now: a slot index follows the palette, a hex is literal. */
+  function markColorOf(raw, palette) {
+    if (typeof raw === 'number') {
+      const options = markColors(palette);
+      return options[raw] || null;
+    }
+    return typeof raw === 'string' && /^#[0-9a-fA-F]{6}$/.test(raw) ? raw : null;
+  }
+
   /** Session row decoration: a 3px bar, only for marked sessions. */
   function createSessionMark(deps) {
     const h = deps.h;
     const store = deps.store;
+    const paletteById = deps.paletteById;
     return function SessionMark(props) {
       const [state, setState] = React.useState(store.snapshot());
       React.useEffect(() => store.subscribe((next) => setState(Object.assign({}, next))), []);
       const id = sessionIdOf(props);
-      const color = id && state.sessionColors ? state.sessionColors[id] : null;
+      const raw = id && state.sessionColors ? state.sessionColors[id] : null;
+      const color = markColorOf(raw, state.paletteId ? paletteById(state.paletteId) : null);
       if (!color) return null;
       return h('span', {
         'data-dsh-session-mark': 'true',
@@ -1700,7 +1680,7 @@ window.__ModuleLoader__.load({
         },
         h('span', { style: { color: 'var(--dsw-alias-label-tertiary)' } }, '颜色标记'),
         options.map((color, index) =>
-          swatchButton(h, color, current === color, () => store.setSessionColor(id, color), 'm' + index),
+          swatchButton(h, color, current === index, () => store.setSessionColor(id, current === index ? null : index), 'm' + index),
         ),
         h(
           'button',
@@ -2002,81 +1982,6 @@ window.__ModuleLoader__.load({
             ),
           ),
         ),
-      );
-    };
-  }
-
-  /* stripped for bundle */
-
-      /* ---- src/client/footer-action.js ---- */
-  /**
-   * Footer quick action (PRD FR-11): the permanent one-click entry for this plugin.
-   *
-   * Placement: `sidebar.footer.action` — the same band that already holds 插件广场
-   * (`skillhub-plaza`, order 8). Registering at order 9 puts this button right beside it, which
-   * is exactly the slot the user pointed at; the shipped cost meter / cordis panel live in the
-   * same band at orders 0–2.
-   *
-   * The seat's ownerProps are only `{ wide }` (no navigation helper), so the button must be
-   * self-contained: one click = 随机一套 (a new palette + effect). The tooltip names the palette
-   * currently in force, so the button doubles as a readout, and `wide === false` (56px rail)
-   * degrades to the icon alone.
-   *
-   * Bundling note: `@bundle:strip` blocks are test-only and removed by the bundler.
-   */
-
-  function createFooterAction(deps) {
-    const h = deps.h;
-    const store = deps.store;
-    const runtime = deps.runtime;
-    const paletteById = deps.paletteById;
-
-    return function FooterAction(props) {
-      const [state, setState] = React.useState(store.snapshot());
-      React.useEffect(() => store.subscribe((next) => setState(Object.assign({}, next))), []);
-      const wide = !props || props.wide !== false;
-      const palette = state.paletteId ? paletteById(state.paletteId) : null;
-      const brand = palette ? palette.light.brand : '#8A8F98';
-      const counter = palette && palette.noteAccent ? palette.noteAccent : '#B0781E';
-      const third = palette ? palette.light.sunken : '#F2F3F5';
-      const label = '多彩Harness';
-      const title = '随机换一套配色与效果（当前 ' + (palette ? palette.name : '官方原色') + '）';
-
-      return h(
-        'button',
-        {
-          type: 'button',
-          'data-dsh-chip': 'true',
-          'data-active': 'false',
-          'data-dsh-footer': 'true',
-          title,
-          'aria-label': title,
-          onClick: () => {
-            if (runtime.randomize) runtime.randomize();
-          },
-          style: {
-            appearance: 'none',
-            font: 'inherit',
-            fontSize: 12,
-            lineHeight: '18px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '3px 8px',
-            borderRadius: 8,
-            cursor: 'pointer',
-            maxWidth: '100%',
-            overflow: 'hidden',
-          },
-        },
-        h(
-          'svg',
-          { viewBox: '0 0 24 24', width: 14, height: 14, focusable: 'false', 'aria-hidden': true },
-          h('rect', { x: 3.5, y: 6.5, width: 12, height: 12, rx: 3, fill: third, transform: 'rotate(-9 9 12)' }),
-          h('rect', { x: 6.5, y: 5, width: 12, height: 12, rx: 3, fill: counter, opacity: 0.92, transform: 'rotate(-2 12 11)' }),
-          h('rect', { x: 9.5, y: 4, width: 12, height: 12, rx: 3, fill: brand }),
-        ),
-        wide ? h('span', { style: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, label) : null,
       );
     };
   }
@@ -2491,6 +2396,31 @@ window.__ModuleLoader__.load({
     const avatarLimitLabel = Math.max(1, Math.round(avatarLimit / 1048576)) + 'MB';
     const comboCount = palettes.length * finishes.length;
 
+    /**
+     * Display order for the colour and effect boards: FEWEST CHARACTERS FIRST, then pinyin.
+     *
+     * A 22-item board is scanned, not read, so a stable language-aware order is what makes it
+     * feel organised. Ties fall back to code-unit order when the runtime has no Chinese
+     * collation. The "no colour" / "no effect" cell stays pinned at the head: it is a position,
+     * not a member of the board.
+     */
+    function labelCompare(a, b) {
+      const left = String(a || '');
+      const right = String(b || '');
+      if (left.length !== right.length) return left.length - right.length;
+      try {
+        return left.localeCompare(right, 'zh-Hans-CN', { sensitivity: 'variant' });
+      } catch (err) {
+        return left < right ? -1 : left > right ? 1 : 0;
+      }
+    }
+
+    function sortByLabel(items, key) {
+      return (items || []).slice().sort((a, b) => labelCompare(key(a), key(b)));
+    }
+
+    const paletteBoard = sortByLabel(palettes, (p) => p.name);
+    const effectBoard = sortByLabel(surfaceFinishes, (f) => f.name);
     const CHIP = { appearance: 'none', font: 'inherit', fontSize: 12, lineHeight: '20px', padding: '2px 10px', borderRadius: 999 };
     const ACTION = { appearance: 'none', font: 'inherit', fontSize: 12, lineHeight: '20px', padding: '2px 10px', borderRadius: 6 };
     const TITLE = { fontSize: 13, color: 'var(--dsw-alias-label-primary)', fontWeight: 600 };
@@ -2545,7 +2475,7 @@ window.__ModuleLoader__.load({
         { style: { display: 'flex', flexDirection: 'column', gap: 6, padding: '6px 0' } },
         h('div', { style: TITLE }, title),
         hint ? h('div', { style: HINT }, hint) : null,
-        h(ROW, null, children),
+        h('div', { style: ROW }, children),
       );
 
     function Panel(props) {
@@ -2609,7 +2539,7 @@ window.__ModuleLoader__.load({
         group('配色库', '22 套：Pantone 年度色 4 · 中国传统色 14 · 莫兰迪高级灰 4（仅浅色）', [
           chip('官方原色', !state.paletteId, () => store.selectPalette(null, currentWorkspaceId), 'official'),
         ].concat(
-          palettes.map((p) =>
+          paletteBoard.map((p) =>
             chip(p.name, state.paletteId === p.id, () => store.selectPalette(p.id, currentWorkspaceId), p.id),
           ),
         )),
@@ -2623,7 +2553,7 @@ window.__ModuleLoader__.load({
             : '当前 官方原色（无覆盖）',
         ),
 
-        h(ROW, null, [
+        h('div', { style: ROW }, [
           action('随机一套', () => {
             if (runtime.randomize) runtime.randomize();
             refresh();
@@ -2642,7 +2572,7 @@ window.__ModuleLoader__.load({
         group('表面效果', '单选；与配色叠加，不覆盖', [
           chip('无', state.finishes.length === 0, () => store.patch({ finishes: [] }), 'plain'),
         ].concat(
-          surfaceFinishes.map((f) =>
+          effectBoard.map((f) =>
             chip(
               f.name,
               state.finishes[0] === f.id,
@@ -2656,13 +2586,6 @@ window.__ModuleLoader__.load({
         group('作用范围', '控制配色重绘的元素范围', tiers.map((t) =>
           chip(t.name, state.tier === t.id, () => store.patch({ tier: t.id }), t.id))),
 
-        h(
-          'div',
-          { style: ROW },
-          chip(state.status.gradientText ? '正文渐变 开' : '正文渐变 关', state.status.gradientText, () =>
-            store.patch({ status: Object.assign({}, state.status, { gradientText: !state.status.gradientText }) }), 'grad'),
-          h('span', { style: HINT }, '默认关；开启后标题与加粗走主题渐变'),
-        ),
 
         group('自动切换', '定时轮换与十二时辰互斥；手动选择优先到下一时段', [
           chip('关闭', state.interval === 'off' && !state.rhythm.enabled, () =>
@@ -2965,8 +2888,17 @@ window.__ModuleLoader__.load({
     };
   }
 
-  function createPlugin(deps) {
-    const h = deps.h;
+  /** Emergency kill switch readable from DevTools: `localStorage['dsh-colors.panic'] = '1'`. */
+  function panicFlag() {
+    try {
+      if (typeof window === 'undefined' || !window.localStorage) return false;
+      return window.localStorage.getItem('dsh-colors.panic') === '1';
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function createPlugin(deps) {  const h = deps.h;
     const palettes = deps.palettes;
     const finishes = deps.finishes;
     const paletteById = (id) => palettes.find((p) => p.id === id) || null;
@@ -3087,7 +3019,7 @@ window.__ModuleLoader__.load({
           const now = new Date();
 
           // Kill switch first: safe mode paints nothing at all, not even the palette.
-          if (state.safeMode) {
+          if (state.safeMode || panicFlag()) {
             pushLayer(SOURCE, {});
             pushLayer(SOURCE + ':accents', {});
             pushLayer(SOURCE + ':finish', {});
@@ -3098,7 +3030,7 @@ window.__ModuleLoader__.load({
             runtime.diag.lastPaletteId = null;
             runtime.diag.expectAccent = null;
             runtime.diag.finish = null;
-            runtime.diag.lastSource = 'safe-mode';
+            runtime.diag.lastSource = state.safeMode ? 'safe-mode' : 'panic-switch';
             return;
           }
 
@@ -3136,13 +3068,13 @@ window.__ModuleLoader__.load({
           const merged = mergeLayers([core, accents, finish.tokens, workspaceLayer, harmony, note]);
           css += cssFromMerged(merged);
           css += finish.css;
-          // 字体渐变 is an EXPLICIT opt-in (default off): as a tier side effect it damaged real
-          // conversation text — a `strong` gradient made an inline `code` inside it inherit
-          // `color:transparent`, so the chip rendered as a blank block until selected.
+          // Annotations are colour-only. 字体渐变 was removed entirely: the session-title gradient
+          // the user wanted would require host-DOM painting, and the conversation-text variant
+          // damaged inline code inside bold runs.
           if (state.status.annotations) {
-            css += markdownNoteCss({ gradientText: Boolean(state.status.gradientText) });
+            css += markdownNoteCss();
           }
-          css += sessionMarkCss(state);
+          css += sessionMarkCss(state, palette);
           setCss(css);
 
           const manualId = manualOverride(state, now);
@@ -3163,21 +3095,25 @@ window.__ModuleLoader__.load({
         }
 
         /**
-         * Session colour marks (PRD FR-10) as a pure stylesheet rule.
+         * Session colour marks (PRD FR-10) — the stylesheet half.
          *
-         * The mark is keyed by the host's own `data-session-id` attribute, so painting is
-         * DECLARATIVE: no DOM mutation, nothing to go stale, and if the host renames the
-         * attribute the worst case is a mark that stops showing (the panel still lists it).
-         * One rule per marked session, capped because the marks themselves are capped.
+         * HONEST STATUS: this half is currently INERT. It keys on a `data-session-id` attribute
+         * that this host does NOT render (verified by searching the shipped client for the
+         * literal), so what actually paints the bar is the official
+         * `sidebar.session.row.leading` seat. The rules are kept because they cost nothing, are
+         * declarative (no DOM mutation), and would start working by themselves if a future host
+         * version exposes that attribute — but nothing here should be credited for the bar.
+         *
+         * Marks are resolved from the ACTIVE palette by slot index, so a mark follows the theme.
          */
-        function sessionMarkCss(state) {
+        function sessionMarkCss(state, palette) {
           const marks = state.sessionColors || {};
           const ids = Object.keys(marks).slice(0, 200);
           if (!ids.length) return '';
           let css = '';
           for (const id of ids) {
-            const color = marks[id];
-            if (!/^#[0-9a-fA-F]{6}$/.test(color)) continue;
+            const color = markColorOf(marks[id], palette);
+            if (!color || !/^#[0-9a-fA-F]{6}$/.test(color)) continue;
             const safe = id.replace(/["\\]/g, '');
             const sel = '[data-session-id="' + safe + '"]';
             css +=
@@ -3364,18 +3300,14 @@ window.__ModuleLoader__.load({
         // redundant. The seat pair (`sidebar.panellist` + `main`) is documented in
         // docs/ARCHITECTURE.md for anyone who wants it back.
 
-        // The permanent quick entry: the SAME band as 插件广场 (skillhub-plaza, order 8), so this
-        // button lands right beside it (order 9) instead of in the main navigation.
-        try {
-          ctx.slots.inject('sidebar.footer.action', () =>
-            ctx.slots.register(
-              { name: 'sidebar.footer.action', id: PANEL_ID, order: 9, label: '多彩Harness' },
-              safeComponent(createFooterAction({ h, store, runtime, paletteById }), 'footer-action'),
-            ),
-          );
-        } catch (err) {
-          recordFault('slot:footer-action', err);
-        }
+        // NOTE: a quick entry in `sidebar.footer.action` was tried (order 9, right after
+        // skillhub-plaza) and REVERTED — the host stacks footer actions vertically, so it could
+        // not sit beside 插件广场 as asked. The panel therefore lives in Settings only, and the
+        // seat contract is documented in docs/ARCHITECTURE.md if it is ever wanted again.
+
+        // The temporary General-row probe has been removed: the blank page was NOT a seat problem —
+        // it was React #130 from `h(ROW, …)` inside the panel (a style object used as an element
+        // type). The panel now lives in ONE place: the standalone settings page.
 
         try {
           ctx.slots.inject('conversation.composer.dock', () =>
@@ -3403,7 +3335,7 @@ window.__ModuleLoader__.load({
           ctx.slots.inject('sidebar.session.row.leading', () =>
             ctx.slots.register(
               { name: 'sidebar.session.row.leading', id: SESSION_BAR_ID, order: 10 },
-              safeComponent(createSessionMark({ h, store }), 'session-mark'),
+              safeComponent(createSessionMark({ h, store, paletteById }), 'session-mark'),
             ),
           );
         } catch (err) {

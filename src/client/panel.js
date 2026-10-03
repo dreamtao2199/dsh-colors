@@ -48,6 +48,31 @@ function createPanel(deps) {
   const avatarLimitLabel = Math.max(1, Math.round(avatarLimit / 1048576)) + 'MB';
   const comboCount = palettes.length * finishes.length;
 
+  /**
+   * Display order for the colour and effect boards: FEWEST CHARACTERS FIRST, then pinyin.
+   *
+   * A 22-item board is scanned, not read, so a stable language-aware order is what makes it
+   * feel organised. Ties fall back to code-unit order when the runtime has no Chinese
+   * collation. The "no colour" / "no effect" cell stays pinned at the head: it is a position,
+   * not a member of the board.
+   */
+  function labelCompare(a, b) {
+    const left = String(a || '');
+    const right = String(b || '');
+    if (left.length !== right.length) return left.length - right.length;
+    try {
+      return left.localeCompare(right, 'zh-Hans-CN', { sensitivity: 'variant' });
+    } catch (err) {
+      return left < right ? -1 : left > right ? 1 : 0;
+    }
+  }
+
+  function sortByLabel(items, key) {
+    return (items || []).slice().sort((a, b) => labelCompare(key(a), key(b)));
+  }
+
+  const paletteBoard = sortByLabel(palettes, (p) => p.name);
+  const effectBoard = sortByLabel(surfaceFinishes, (f) => f.name);
   const CHIP = { appearance: 'none', font: 'inherit', fontSize: 12, lineHeight: '20px', padding: '2px 10px', borderRadius: 999 };
   const ACTION = { appearance: 'none', font: 'inherit', fontSize: 12, lineHeight: '20px', padding: '2px 10px', borderRadius: 6 };
   const TITLE = { fontSize: 13, color: 'var(--dsw-alias-label-primary)', fontWeight: 600 };
@@ -102,7 +127,7 @@ function createPanel(deps) {
       { style: { display: 'flex', flexDirection: 'column', gap: 6, padding: '6px 0' } },
       h('div', { style: TITLE }, title),
       hint ? h('div', { style: HINT }, hint) : null,
-      h(ROW, null, children),
+      h('div', { style: ROW }, children),
     );
 
   function Panel(props) {
@@ -166,7 +191,7 @@ function createPanel(deps) {
       group('配色库', '22 套：Pantone 年度色 4 · 中国传统色 14 · 莫兰迪高级灰 4（仅浅色）', [
         chip('官方原色', !state.paletteId, () => store.selectPalette(null, currentWorkspaceId), 'official'),
       ].concat(
-        palettes.map((p) =>
+        paletteBoard.map((p) =>
           chip(p.name, state.paletteId === p.id, () => store.selectPalette(p.id, currentWorkspaceId), p.id),
         ),
       )),
@@ -180,7 +205,7 @@ function createPanel(deps) {
           : '当前 官方原色（无覆盖）',
       ),
 
-      h(ROW, null, [
+      h('div', { style: ROW }, [
         action('随机一套', () => {
           if (runtime.randomize) runtime.randomize();
           refresh();
@@ -199,7 +224,7 @@ function createPanel(deps) {
       group('表面效果', '单选；与配色叠加，不覆盖', [
         chip('无', state.finishes.length === 0, () => store.patch({ finishes: [] }), 'plain'),
       ].concat(
-        surfaceFinishes.map((f) =>
+        effectBoard.map((f) =>
           chip(
             f.name,
             state.finishes[0] === f.id,
@@ -213,13 +238,6 @@ function createPanel(deps) {
       group('作用范围', '控制配色重绘的元素范围', tiers.map((t) =>
         chip(t.name, state.tier === t.id, () => store.patch({ tier: t.id }), t.id))),
 
-      h(
-        'div',
-        { style: ROW },
-        chip(state.status.gradientText ? '正文渐变 开' : '正文渐变 关', state.status.gradientText, () =>
-          store.patch({ status: Object.assign({}, state.status, { gradientText: !state.status.gradientText }) }), 'grad'),
-        h('span', { style: HINT }, '默认关；开启后标题与加粗走主题渐变'),
-      ),
 
       group('自动切换', '定时轮换与十二时辰互斥；手动选择优先到下一时段', [
         chip('关闭', state.interval === 'off' && !state.rhythm.enabled, () =>

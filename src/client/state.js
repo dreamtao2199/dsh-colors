@@ -89,13 +89,7 @@ const DEFAULT_STATE = {
     /** The chip is opt-in; the seat still mounts because it carries the workspace signal. */
     chip: false,
     annotations: true,
-    /**
-     * 正文/标题渐变上色。Default CLOSED on purpose: as a tier side effect it damaged real
-     * conversation text — a `strong` gradient made an inline `code` inside it inherit
-     * `color:transparent`, so the chip rendered as a blank block until it was selected.
-     * It is now an explicit switch, and the CSS restores descendant colours regardless.
-     */
-    gradientText: false,
+
     /**
      * Harmonise the host's three semantic state colours (success / warn / error) toward the
      * active palette. The running indicator is deliberately NOT touched: its colour comes from
@@ -143,9 +137,13 @@ function normalize(raw) {
   for (const key of Object.keys(marks)) {
     const value = marks[key];
     if (typeof key !== 'string' || !key) continue;
-    if (typeof value !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(value)) continue;
-    if (kept >= SESSION_COLOR_LIMIT) break;
-    clean[key] = value.toUpperCase();
+    if (kept >= SESSION_COLOR_LIMIT) continue;
+    // A mark is stored as a SLOT INDEX (0-5) so it re-derives from whatever palette is active:
+    // change the theme and every mark follows it instead of freezing yesterday's colour. A raw
+    // hex is still accepted (and kept) for state saved before this change.
+    if (typeof value === 'number' && value >= 0 && value < 6) clean[key] = Math.floor(value);
+    else if (typeof value === 'string' && /^#[0-9a-fA-F]{6}$/.test(value)) clean[key] = value.toUpperCase();
+    else continue;
     kept += 1;
   }
   state.sessionColors = clean;
@@ -351,11 +349,13 @@ function createStore(storage, onError) {
     patch({ rhythm: Object.assign({}, state.rhythm, { segments }), manual: noManual() });
   }
 
-  function setSessionColor(sessionId, color) {
+  /** `value` is a SLOT INDEX (0-5) or null to clear; a legacy hex string is passed through. */
+  function setSessionColor(sessionId, value) {
     if (typeof sessionId !== 'string' || !sessionId) return;
     const marks = Object.assign({}, state.sessionColors);
-    if (!color) delete marks[sessionId];
-    else marks[sessionId] = String(color).toUpperCase();
+    if (value === null || value === undefined || value === '') delete marks[sessionId];
+    else if (typeof value === 'number') marks[sessionId] = Math.max(0, Math.min(5, Math.floor(value)));
+    else marks[sessionId] = String(value).toUpperCase();
     patch({ sessionColors: marks });
   }
 

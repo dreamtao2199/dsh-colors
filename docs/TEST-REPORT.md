@@ -65,7 +65,15 @@ node tools/make-manifest.mjs          # 生成 MANIFEST.sha256
 | Release | https://github.com/dreamtao2199/dsh-colors/releases/tag/v0.9.9 （pre-release） |
 | 社区列表 PR | https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6482 （open；列表原有 4412 条） |
 | 归档 | `dist/dsh-colors-0.9.9.tgz` 215.1 KB · `dist/dsh-colors-0.9.9.zip` 237.2 KB · `MANIFEST.sha256` 覆盖 43 个文件 |
-| 复核 | **在 C 盘部署副本上重跑四套测试：676 项全绿**（不是只在开发副本上跑） |
+| 复核 | **在 C 盘部署副本上重跑四套测试**（不是只在开发副本上跑） |
+
+### 版本流水
+
+| 版本 | 关键内容 | Release |
+|---|---|---|
+| 0.9.9 | 改名 dsh-colors、B1 效果叠加、随机/会话标记/头像编辑器/工作台 | v0.9.9 |
+| 0.9.10 | 快捷入口落侧栏底部（后按反馈回退）、正文渐变改开关、设置页空白（#130 定位前） | v0.9.10 |
+| **0.9.11** | **修 #130（把样式对象当组件类型）→ 设置页正常渲染**；字体渐变**整条移除**；色系/效果按字数→拼音排序；会话标记跟随主题 | v0.9.11 |
 
 > 注记：本机 CLI 的 TLS 只在更宽权限下可用；`web_fetch` 被解析到内网 IP，因此资料核对走 API/raw 通道。
 > GitHub 操作全程未打印任何密钥，凭据取自本机 Git Credential Manager（`dreamtao2199`）。
