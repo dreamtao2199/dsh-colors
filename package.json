@@ -1,0 +1,45 @@
+{
+  "name": "dsh-colors",
+  "version": "0.9.9",
+  "private": true,
+  "description": "多彩Harness — 22 light-only palettes (Pantone / Chinese traditional / Morandi), 14 composable surface effects, accent tiers, 十二时辰 clock rotation, workspace binding, per-session colour marks, an optional account row and a main-column workbench.",
+  "type": "module",
+  "icon": "./icon.svg",
+  "license": "MIT",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node tests/breaker.test.mjs && node tests/state.test.mjs && node tests/wcag.test.mjs && node tests/bundle-smoke.mjs"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "build.mjs",
+    "src",
+    "tests",
+    "docs",
+    "tools",
+    "MANIFEST.sha256",
+    "MANIFEST.txt",
+    "cordis.patch.yml",
+    "icon.svg",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE",
+    "THIRD-PARTY.md",
+    "locale/*.json"
+  ],
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": ["@deepseek-ai/dsh-client-ui-theme"]
+    }
+  }
+}

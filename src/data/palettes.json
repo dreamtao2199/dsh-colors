@@ -1,0 +1,228 @@
+{
+  "_comment": "最终配色库：只有三套体系 A=Pantone 年度色 / B=中国传统色 / C=莫兰迪高级灰，共 22 支。已移除 v2 的测试配色（青瓷/豆沙绿/米纸/雾蓝/岩灰）。全部只提供浅色方案：按用户决定不再有深色模式，插件会把 dark 值等同于 light 值，因此这里只存 light。identity 是这支配色的身份色；brand 与 identity 同值，可用的强调色由程序自动加深到 WCAG 4.5:1 后得出。传统色的 hex 为流通近似值，非官方发布色值。",
+  "lightOnly": true,
+  "palettes": [
+    {
+      "id": "cloud-dancer",
+      "name": "云上舞白",
+      "group": "A",
+      "source": "Pantone 11-4201 · 2026 年度色",
+      "identity": "#F0EEE9",
+      "note": "暖白中性底，主色低饱和暖灰",
+      "noteAccent": "#2A4E8C",
+      "light": { "brand": "#9A8F80", "bg": "#F5F3EF", "surface": "#FFFFFF", "sunken": "#EDEAE3", "text": "#2B2721", "sidebar": "#F1EEE8" }
+    },
+    {
+      "id": "mocha-mousse",
+      "name": "摩卡慕斯",
+      "group": "A",
+      "source": "Pantone 17-1230 · 2025 年度色",
+      "identity": "#A47864",
+      "note": "咖啡奶调，暖而不燥",
+      "noteAccent": "#2F5F8F",
+      "light": { "brand": "#A47864", "bg": "#F7F1EC", "surface": "#FFFDFB", "sunken": "#EFE4DB", "text": "#2E241D", "sidebar": "#F3EBE3" }
+    },
+    {
+      "id": "peach-fuzz",
+      "name": "柔和桃",
+      "group": "A",
+      "source": "Pantone 13-1023 · 2024 年度色",
+      "identity": "#FFBE98",
+      "note": "身份色偏浅，强调色自动加深为陶土橙",
+      "noteAccent": "#2F5F8F",
+      "light": { "brand": "#FFBE98", "bg": "#FDF4EE", "surface": "#FFFFFF", "sunken": "#F7E7DC", "text": "#33241C", "sidebar": "#FBF1EA" }
+    },
+    {
+      "id": "very-peri",
+      "name": "长春花蓝",
+      "group": "A",
+      "source": "Pantone 17-3938 · 2022 年度色",
+      "identity": "#6667AB",
+      "note": "唯一的冷紫调",
+      "noteAccent": "#A05A2C",
+      "light": { "brand": "#6667AB", "bg": "#F4F4FA", "surface": "#FFFFFF", "sunken": "#E9E9F5", "text": "#1F1F33", "sidebar": "#EFF0F8" }
+    },
+
+    {
+      "id": "ruyao-celadon",
+      "name": "汝窑天青",
+      "group": "B",
+      "source": "中国传统色",
+      "identity": "#7FA39B",
+      "note": "宋瓷天青，最耐看的一支；青瓷的正式替代",
+      "noteAccent": "#A63A5A",
+      "light": { "brand": "#7FA39B", "bg": "#F2F6F4", "surface": "#FFFFFF", "sunken": "#E6EDEA", "text": "#1E2A27", "sidebar": "#EDF2F0" }
+    },
+    {
+      "id": "moon-white",
+      "name": "月白",
+      "group": "B",
+      "source": "中国传统色",
+      "identity": "#E8EDF2",
+      "note": "极浅蓝白，身份色几乎就是底",
+      "noteAccent": "#A05A2C",
+      "light": { "brand": "#E8EDF2", "bg": "#F6F8FA", "surface": "#FFFFFF", "sunken": "#EBEFF4", "text": "#1D2530", "sidebar": "#F1F4F8" }
+    },
+    {
+      "id": "lotus-pink",
+      "name": "藕荷",
+      "group": "B",
+      "source": "中国传统色",
+      "identity": "#D8C7D8",
+      "note": "淡莲粉紫，温柔不甜腻",
+      "noteAccent": "#2F5F8F",
+      "light": { "brand": "#D8C7D8", "bg": "#FAF5F8", "surface": "#FFFFFF", "sunken": "#F2E9F0", "text": "#2E2230", "sidebar": "#F7F1F5" }
+    },
+    {
+      "id": "autumn-olive",
+      "name": "秋香",
+      "group": "B",
+      "source": "中国传统色",
+      "identity": "#D9C98A",
+      "note": "橄榄黄，复古纸感",
+      "noteAccent": "#35486B",
+      "light": { "brand": "#D9C98A", "bg": "#F9F7EC", "surface": "#FFFFFF", "sunken": "#F1EDD9", "text": "#2B2818", "sidebar": "#F5F2E4" }
+    },
+    {
+      "id": "tianshui-jade",
+      "name": "天水碧",
+      "group": "B",
+      "source": "中国传统色",
+      "identity": "#A8D8CF",
+      "note": "雨过天青的水绿，清爽",
+      "noteAccent": "#A63A5A",
+      "light": { "brand": "#A8D8CF", "bg": "#F1F8F6", "surface": "#FFFFFF", "sunken": "#E3F0EC", "text": "#16302A", "sidebar": "#EBF5F2" }
+    },
+    {
+      "id": "dawn-white",
+      "name": "东方既白",
+      "group": "B",
+      "source": "中国传统色",
+      "identity": "#F2EDE4",
+      "note": "破晓暖白，配灰褐强调色",
+      "noteAccent": "#35486B",
+      "light": { "brand": "#F2EDE4", "bg": "#F8F5EE", "surface": "#FFFFFF", "sunken": "#EFEAE0", "text": "#2A251B", "sidebar": "#F4F0E8" }
+    },
+    {
+      "id": "cinnabar",
+      "name": "朱砂",
+      "group": "B",
+      "source": "中国传统色",
+      "identity": "#B4432F",
+      "note": "暖红，身份色本身就是深色强调色（底仍是浅的）",
+      "noteAccent": "#2F5F8F",
+      "light": { "brand": "#B4432F", "bg": "#FBF2EF", "surface": "#FFFFFF", "sunken": "#F5E2DC", "text": "#331E18", "sidebar": "#F8EDE9" }
+    },
+    {
+      "id": "azurite",
+      "name": "石青",
+      "group": "B",
+      "source": "中国传统色",
+      "identity": "#2F5F8F",
+      "note": "矿物蓝，沉静",
+      "noteAccent": "#A05A2C",
+      "light": { "brand": "#2F5F8F", "bg": "#F2F6FA", "surface": "#FFFFFF", "sunken": "#E5EDF5", "text": "#16283A", "sidebar": "#EDF3F8" }
+    },
+    {
+      "id": "dai-blue",
+      "name": "黛蓝",
+      "group": "B",
+      "source": "中国传统色",
+      "identity": "#35486B",
+      "note": "远山黛色，偏深的蓝（只作强调，底不动）",
+      "noteAccent": "#A05A2C",
+      "light": { "brand": "#35486B", "bg": "#F3F5F9", "surface": "#FFFFFF", "sunken": "#E7EBF2", "text": "#1A2333", "sidebar": "#EFF2F7" }
+    },
+    {
+      "id": "ochre",
+      "name": "赭石",
+      "group": "B",
+      "source": "中国传统色",
+      "identity": "#A05A2C",
+      "note": "土红棕，古画底调",
+      "noteAccent": "#2F5F8F",
+      "light": { "brand": "#A05A2C", "bg": "#FAF4EE", "surface": "#FFFFFF", "sunken": "#F2E6D9", "text": "#2F2418", "sidebar": "#F7F0E8" }
+    },
+    {
+      "id": "cang-huang",
+      "name": "苍黄",
+      "group": "B",
+      "source": "中国传统色",
+      "identity": "#A88C2A",
+      "note": "暗黄，古籍纸色",
+      "noteAccent": "#35486B",
+      "light": { "brand": "#A88C2A", "bg": "#F9F6EA", "surface": "#FFFFFF", "sunken": "#F1EBD5", "text": "#2C2716", "sidebar": "#F5F1E1" }
+    },
+    {
+      "id": "rouge",
+      "name": "胭脂",
+      "group": "B",
+      "source": "中国传统色",
+      "identity": "#A63A5A",
+      "note": "玫红，比朱砂偏冷",
+      "noteAccent": "#2F5F8F",
+      "light": { "brand": "#A63A5A", "bg": "#FBF3F5", "surface": "#FFFFFF", "sunken": "#F4E4E9", "text": "#33202A", "sidebar": "#F8EFF2" }
+    },
+    {
+      "id": "bamboo-moon",
+      "name": "竹月",
+      "group": "B",
+      "source": "中国传统色",
+      "identity": "#63808C",
+      "note": "竹影月色，青灰蓝",
+      "noteAccent": "#9E4A32",
+      "light": { "brand": "#63808C", "bg": "#F4F7F8", "surface": "#FFFFFF", "sunken": "#E8EFF2", "text": "#1E2A30", "sidebar": "#EFF4F6" }
+    },
+    {
+      "id": "lapis",
+      "name": "青金",
+      "group": "B",
+      "source": "中国传统色",
+      "identity": "#2A4E8C",
+      "note": "青金石蓝，浓而不艳",
+      "noteAccent": "#A05A2C",
+      "light": { "brand": "#2A4E8C", "bg": "#F3F5FB", "surface": "#FFFFFF", "sunken": "#E5EAF7", "text": "#1B2440", "sidebar": "#EFF2FA" }
+    },
+
+    {
+      "id": "morandi-sage",
+      "name": "莫兰迪·灰绿",
+      "group": "C",
+      "source": "莫兰迪高级灰",
+      "identity": "#7E9179",
+      "note": "最低调的一支，久看不累",
+      "noteAccent": "#8A5A86",
+      "light": { "brand": "#7E9179", "bg": "#F4F6F2", "surface": "#FFFFFF", "sunken": "#E8EDE6", "text": "#222A20", "sidebar": "#EFF3EC" }
+    },
+    {
+      "id": "morandi-blue",
+      "name": "莫兰迪·灰蓝",
+      "group": "C",
+      "source": "莫兰迪高级灰",
+      "identity": "#7E93A8",
+      "note": "雾霾蓝，冷静",
+      "noteAccent": "#A05A2C",
+      "light": { "brand": "#7E93A8", "bg": "#F3F6F8", "surface": "#FFFFFF", "sunken": "#E6ECF1", "text": "#1F272E", "sidebar": "#EEF2F6" }
+    },
+    {
+      "id": "morandi-rose",
+      "name": "莫兰迪·灰粉",
+      "group": "C",
+      "source": "莫兰迪高级灰",
+      "identity": "#B08A8A",
+      "note": "脏粉，柔和不幼稚",
+      "noteAccent": "#2F5F8F",
+      "light": { "brand": "#B08A8A", "bg": "#F9F4F4", "surface": "#FFFFFF", "sunken": "#F1E7E7", "text": "#2C2222", "sidebar": "#F6F0F0" }
+    },
+    {
+      "id": "morandi-mauve",
+      "name": "莫兰迪·灰紫",
+      "group": "C",
+      "source": "莫兰迪高级灰",
+      "identity": "#93829A",
+      "note": "灰紫，含蓄的高级感",
+      "noteAccent": "#A05A2C",
+      "light": { "brand": "#93829A", "bg": "#F6F3F7", "surface": "#FFFFFF", "sunken": "#ECE7EF", "text": "#262028", "sidebar": "#F1EDF4" }
+    }
+  ]
+}
