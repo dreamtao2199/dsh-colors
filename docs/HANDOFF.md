@@ -66,10 +66,10 @@ S1 不订阅 `theme/change`（**OOM 事故根因**）· S2 无 `setInterval`、�
 
 | # | 事项 | 说明 |
 |---|---|---|
-| 1 | **重启 `dsh web`** | 让新 profile 生效；然后跑 L4 |
+| 1 | **重启 `dsh web`**（用户手动） | profile 已指向 `C:\Users\dream\dsh-dev\dsh-colors` 且联接已重建；重启后新构建才会加载 |
 | 2 | **L4 全流程验证** | 独立 Agent 窗口：22 配色逐个、14 效果 ×（有/无配色）、十二时辰边界、会话标记、账号行、工作台；截图 + 控制台 + 网络 + 崩溃日志 + 内存 |
 | 3 | L4 顺带确认 | ①「费用明细」chip 属于哪个席位（候选：`conversation.session.header.utilities` / `shell.leading` / 主列页签）②`data-session-id` 是否真存在于会话行 DOM（决定标记竖杠走 CSS 还是退到 `row.leading`）③工作区横条是否可见 |
-| 4 | GitHub 上架 | 公开仓库 `dsh-colors` → Release `v0.9.9`（挂 tgz/zip/清单）→ 向 `awesome-dsh-plugin/awesome-dsh-plugin` 提一条 PR（社区市场自动收录） |
+| 4 | ~~GitHub 上架~~ **已完成** | 仓库 https://github.com/dreamtao2199/dsh-colors （commit `a02fc60`，tag `v0.9.9`）· Release https://github.com/dreamtao2199/dsh-colors/releases/tag/v0.9.9 · 社区列表 PR https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6482 （待维护者合并） |
 | 5 | 已知限制（不修） | 无深色模式；旋转圈颜色共享 `--dsw-alias-label-tertiary` 不动；账号行开启后遮蔽官方行（停用即还原）；`row.leading` 空闲才挂载 |
 
 ## 8. 约定与偏好（别丢）

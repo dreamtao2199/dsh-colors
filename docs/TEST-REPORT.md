@@ -54,3 +54,18 @@ node build.mjs
 node tests/breaker.test.mjs; node tests/state.test.mjs; node tests/wcag.test.mjs; node tests/bundle-smoke.mjs
 node tools/make-manifest.mjs          # 生成 MANIFEST.sha256
 ```
+
+## 6. 发布记录（2026-10-03）
+
+| 项 | 值 |
+|---|---|
+| 仓库 | https://github.com/dreamtao2199/dsh-colors （公开，MIT） |
+| 首个提交 | `a02fc60` 多彩Harness 0.9.9 · 首个准正式版（45 个文件） |
+| 标签 | `v0.9.9` |
+| Release | https://github.com/dreamtao2199/dsh-colors/releases/tag/v0.9.9 （pre-release） |
+| 社区列表 PR | https://github.com/awesome-dsh-plugin/awesome-dsh-plugin/pull/6482 （open；列表原有 4412 条） |
+| 归档 | `dist/dsh-colors-0.9.9.tgz` 215.1 KB · `dist/dsh-colors-0.9.9.zip` 237.2 KB · `MANIFEST.sha256` 覆盖 43 个文件 |
+| 复核 | **在 C 盘部署副本上重跑四套测试：676 项全绿**（不是只在开发副本上跑） |
+
+> 注记：本机 CLI 的 TLS 只在更宽权限下可用；`web_fetch` 被解析到内网 IP，因此资料核对走 API/raw 通道。
+> GitHub 操作全程未打印任何密钥，凭据取自本机 Git Credential Manager（`dreamtao2199`）。
