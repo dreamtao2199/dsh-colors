@@ -40,26 +40,6 @@ function markOptions(paletteById, state) {
   return markColors(palette);
 }
 
-/** Flatten a `useSessions` snapshot into `[{ id, label }]`, defensively. */
-function readSessions(props, limit) {
-  const max = limit || 40;
-  try {
-    if (!props || typeof props.useSessions !== 'function') return [];
-    const snapshot = props.useSessions((value) => value);
-    const byId = snapshot && snapshot.byId ? snapshot.byId : snapshot;
-    if (!byId || typeof byId !== 'object') return [];
-    return Object.keys(byId)
-      .slice(0, max)
-      .map((id) => {
-        const entry = byId[id] || {};
-        const label = entry.title || entry.name || entry.label || id;
-        return { id, label: String(label).slice(0, 28) };
-      });
-  } catch (err) {
-    return [];
-  }
-}
-
 /** One swatch button; shared by the menu seat and the panel. */
 function swatchButton(h, color, active, onClick, key) {
   return h('button', {
@@ -153,5 +133,5 @@ function createSessionMenu(deps) {
 }
 
 /* @bundle:strip-start */
-export { sessionIdOf, markOptions, readSessions, swatchButton, createSessionMark, createSessionMenu };
+export { sessionIdOf, markOptions, swatchButton, createSessionMark, createSessionMenu };
 /* @bundle:strip-end */

@@ -38,6 +38,13 @@ function gradientTextCss() {
     '}' +
     c + ' :where(h1,h2,h3,h4,h5,h6) strong{' +
     'background-image:none;-webkit-text-fill-color:currentColor;color:inherit;}' +
+    // A transparent `strong` passes transparency DOWN to its children: an inline `code` inside
+    // it kept its own (light) background and inherited `color:transparent`, rendering as a
+    // blank block until selected. Descendants therefore get their colour back explicitly.
+    c + ' strong :where(code,kbd,samp,a,em),' +
+    c + ' :where(h1,h2,h3,h4,h5,h6) :where(code,kbd,samp,a,em){' +
+    '-webkit-text-fill-color:currentColor;color:var(--dsw-alias-label-primary);' +
+    'background-clip:border-box;-webkit-background-clip:border-box;background-image:none;}' +
     '}'
   );
 }

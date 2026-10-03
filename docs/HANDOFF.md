@@ -1,7 +1,7 @@
 # HANDOFF · 交接锚点
 
 > 压缩/新会话后的**第一份必读文件**。读完这一份即可恢复全部关键状态，不必回溯对话。
-> 最后更新：2026-10-03 20:xx（版本 **0.9.9** · 插件名 **dsh-colors / 多彩Harness** · 676 项测试全绿 · L4 待重启后执行）
+> 最后更新：2026-10-03 21:3x（版本 **0.9.10** · 插件名 **dsh-colors / 多彩Harness** · 683 项测试全绿 · bsk 已跑通，L4 进行中）
 
 ---
 
@@ -51,7 +51,7 @@ node tools\package.mjs           # 构建 + 四套测试 + 清单 + tgz/zip（�
 | 席位 | 用途 | 要点 |
 |---|---|---|
 | `settings.section` | 完整面板页 | `{ id, order, label }`；官方文档明确 `settings.general.item` 只适合"单个设置" |
-| `sidebar.panellist` + `main` | 侧栏常驻按钮 + 整页工作台 | **两处 id 必须一致**；官方已占 `plugins`/`schedules`；ownerProps 只给 `{ size, active }` |
+| `sidebar.footer.action` | 侧栏底部快捷入口（与「插件广场」并排） | order 9 紧邻 skillhub-plaza(8)；ownerProps 只给 `{ wide }`（无导航 API，故按钮自带动作＝随机） |
 | `conversation.composer.dock` | 状态采集 + 可选状态条 | ownerProps 给 `sessionId`/`useSession`/`useSessions`/`useWorkspaces` |
 | `shell.overlay` | 帧顶工作区色条 | click-through，`pointer-events:none` |
 | `sidebar.session.row.leading` | 会话标记竖杠 | **官方只在该行空闲时挂载** → 运行中可能不显示（已知限制） |

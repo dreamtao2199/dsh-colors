@@ -29,11 +29,11 @@ const SOURCES = [
   'src/client/state.js',
   'src/client/session-colors.js',
   'src/client/avatar-editor.js',
+  'src/client/footer-action.js',
   'src/client/dock-signal.js',
   'src/client/workspace-bar.js',
   'src/client/account-row.js',
   'src/client/panel.js',
-  'src/client/workbench.js',
   'src/client/index.js',
 ];
 

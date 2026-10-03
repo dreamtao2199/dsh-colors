@@ -10,6 +10,11 @@
  *     reads as "that click did nothing", which is exactly what the action-shaped chips did;
  *   * destructive actions ask twice, without timers (the confirm state is component state).
  *
+ * This component calls NO host hooks: `settings.section` and a settings row hand different
+ * prop sets, and a hook that appears in one context but not the other changes the hook count
+ * between renders — React then throws and the whole page renders blank. The session-mark list
+ * therefore lives in the session's own "..." menu, not here.
+ *
  * Bundling note: `@bundle:strip` blocks are test-only and removed by the bundler.
  */
 
@@ -120,9 +125,6 @@ function createPanel(deps) {
     const manualName =
       manual.paletteId && paletteById(manual.paletteId) ? paletteById(manual.paletteId).name : null;
     const marks = state.sessionColors || {};
-    const sessions = readSessions(props, 24);
-    const markPalette = state.paletteId ? paletteById(state.paletteId) : null;
-    const markOptionsList = markColors(markPalette);
 
     // Expected vs actually applied. "Expected" is the exact value this plugin last WROTE for
     // the token (`runtime.diag.expectAccent`), never a value derived some other way: the old
@@ -150,6 +152,17 @@ function createPanel(deps) {
       'div',
       { style: { display: 'flex', flexDirection: 'column', gap: 2, padding: '2px 0' } },
 
+      h(
+        'div',
+        { style: { display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', paddingBottom: 4 } },
+        h('div', { style: { fontSize: 16, fontWeight: 600, color: 'var(--dsw-alias-label-primary)' } }, '多彩Harness'),
+        h(
+          'div',
+          { style: HINT },
+          (activePalette ? activePalette.name + ' · ' + (activePalette.note || activePalette.source || '') : '官方原色') +
+            ' · 效果 ' + finishName,
+        ),
+      ),
       group('配色库', '22 套：Pantone 年度色 4 · 中国传统色 14 · 莫兰迪高级灰 4（仅浅色）', [
         chip('官方原色', !state.paletteId, () => store.selectPalette(null, currentWorkspaceId), 'official'),
       ].concat(
@@ -197,8 +210,16 @@ function createPanel(deps) {
         ),
       )),
 
-      group('作用范围', '控制配色重绘的元素范围；标准/张扬档启用字体渐变', tiers.map((t) =>
+      group('作用范围', '控制配色重绘的元素范围', tiers.map((t) =>
         chip(t.name, state.tier === t.id, () => store.patch({ tier: t.id }), t.id))),
+
+      h(
+        'div',
+        { style: ROW },
+        chip(state.status.gradientText ? '正文渐变 开' : '正文渐变 关', state.status.gradientText, () =>
+          store.patch({ status: Object.assign({}, state.status, { gradientText: !state.status.gradientText }) }), 'grad'),
+        h('span', { style: HINT }, '默认关；开启后标题与加粗走主题渐变'),
+      ),
 
       group('自动切换', '定时轮换与十二时辰互斥；手动选择优先到下一时段', [
         chip('关闭', state.interval === 'off' && !state.rhythm.enabled, () =>
@@ -287,29 +308,14 @@ function createPanel(deps) {
           )
         : h('div', { style: HINT }, '未检测到工作区；打开任一会话后自动识别'),
 
-      group('会话标记', '手动给单个对话上色，行首竖杠标出；未标记的保持素净', [
+      group('会话标记', '在会话行的「…」菜单里给单个对话上色，行首出现竖杠', [
         action('清除全部标记', () => store.patch({ sessionColors: {} }), 'marks-clear', 'normal', !Object.keys(marks).length),
       ]),
-
-      sessions.length
-        ? h(
-            'div',
-            { style: { display: 'flex', flexDirection: 'column', gap: 3, paddingLeft: 2 } },
-            sessions.map((session) =>
-              h(
-                'div',
-                { key: session.id, style: { display: 'flex', gap: 6, alignItems: 'center' } },
-                h('span', { style: Object.assign({}, HINT, { width: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }) }, session.label),
-                markOptionsList.map((color, index) =>
-                  swatchButton(h, color, marks[session.id] === color, () => {
-                    store.setSessionColor(session.id, marks[session.id] === color ? null : color);
-                    refresh();
-                  }, session.id + '-' + index),
-                ),
-              ),
-            ),
-          )
-        : h('div', { style: HINT }, '会话列表由面板提供；打开任一会话后再看'),
+      h(
+        'div',
+        { style: HINT },
+        Object.keys(marks).length ? '已标记 ' + Object.keys(marks).length + ' 个对话（色板取自当前配色）' : '尚未标记任何对话',
+      ),
 
       group('账号行', '替换侧栏账号入口；停用即还原官方（含快速退出登录）', [
         chip(state.brand.enabled ? '自定义 开' : '自定义 关', state.brand.enabled, () =>

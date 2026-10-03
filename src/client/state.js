@@ -90,6 +90,13 @@ const DEFAULT_STATE = {
     chip: false,
     annotations: true,
     /**
+     * 正文/标题渐变上色。Default CLOSED on purpose: as a tier side effect it damaged real
+     * conversation text — a `strong` gradient made an inline `code` inside it inherit
+     * `color:transparent`, so the chip rendered as a blank block until it was selected.
+     * It is now an explicit switch, and the CSS restores descendant colours regardless.
+     */
+    gradientText: false,
+    /**
      * Harmonise the host's three semantic state colours (success / warn / error) toward the
      * active palette. The running indicator is deliberately NOT touched: its colour comes from
      * `--dsw-alias-label-tertiary`, so recolouring it would tint all tertiary text.

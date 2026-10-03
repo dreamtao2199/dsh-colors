@@ -1,8 +1,8 @@
 {
   "name": "dsh-colors",
-  "version": "0.9.9",
+  "version": "0.9.10",
   "private": true,
-  "description": "多彩Harness — 22 light-only palettes (Pantone / Chinese traditional / Morandi), 14 composable surface effects, accent tiers, 十二时辰 clock rotation, workspace binding, per-session colour marks, an optional account row and a main-column workbench.",
+  "description": "多彩Harness — 22 light-only palettes (Pantone / Chinese traditional / Morandi), 14 composable surface effects, 12-shichen clock rotation, workspace binding, per-session colour marks and an optional account row for DeepSeek Harness.",
   "type": "module",
   "icon": "./icon.svg",
   "license": "MIT",
@@ -14,7 +14,8 @@
   },
   "scripts": {
     "build": "node build.mjs",
-    "test": "node tests/breaker.test.mjs && node tests/state.test.mjs && node tests/wcag.test.mjs && node tests/bundle-smoke.mjs"
+    "test": "node tests/breaker.test.mjs && node tests/state.test.mjs && node tests/wcag.test.mjs && node tests/bundle-smoke.mjs",
+    "package": "node tools/package.mjs"
   },
   "files": [
     "index.js",

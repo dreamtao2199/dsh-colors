@@ -179,33 +179,28 @@ check(css.includes('--dsw-alias-state-business-primary:'), 'primary channel carr
 
 // ------------------------------------------------------------------------- slots
 
-check(rec.injected.length === 7, 'seven seats injected (' + rec.injected.join(', ') + ')');
+check(rec.injected.length === 6, 'six seats injected (' + rec.injected.join(', ') + ')');
 check(rec.injected.includes('settings.section'), 'the panel is a settings PAGE (settings.section), not a General row');
-check(rec.injected.includes('sidebar.panellist'), 'a permanent sidebar button is requested (sidebar.panellist)');
-check(rec.injected.includes('main'), 'the workbench page is requested (main)');
+check(!rec.injected.includes('sidebar.panellist'), 'the redundant sidebar button is GONE (the panel lives in Settings)');
+check(!rec.injected.includes('main'), 'no main-column workbench is registered any more');
+check(rec.injected.includes('sidebar.footer.action'), 'the quick entry is registered in the sidebar FOOTER band (beside 插件广场)');
 check(rec.injected.includes('conversation.composer.dock'), 'status chip installed under the composer');
 check(rec.injected.includes('shell.overlay'), 'frame-wide workspace bar installed into shell.overlay');
 check(rec.injected.includes('sidebar.session.row.leading'), 'session colour bar seat requested');
 check(rec.injected.includes('sidebar.workspaces.session.menu.item'), 'session colour menu seat requested');
 
 const section = rec.registered.find((r) => r.opts.name === 'settings.section');
-const icon = rec.registered.find((r) => r.opts.name === 'sidebar.panellist');
-const mainSeat = rec.registered.find((r) => r.opts.name === 'main');
 const dock = rec.registered.find((r) => r.opts.id === 'dsh-colors-status');
 const bar = rec.registered.find((r) => r.opts.id === 'dsh-colors-workspace-bar');
 check(
   Boolean(section) && section.opts.id === 'dsh-colors' && section.opts.order === 30,
   'panel page registered as a settings section at order 30',
 );
-check(
-  Boolean(icon) && icon.opts.id === 'dsh-colors' && typeof icon.opts.label === 'string',
-  'the sidebar button carries the same id and a label (the id addresses the main panel)',
-);
-check(Boolean(mainSeat) && mainSeat.opts.key === 'dsh-colors', 'main panel keyed by that same id (panellist ↔ main pairing)');
+
 check(Boolean(dock) && dock.opts.order === 20, 'status chip registered at order 20 (below cost meter)');
 check(Boolean(bar), 'workspace bar registered');
 check(
-  [section, icon, mainSeat, dock, bar].every((entry) => entry && typeof entry.component === 'function'),
+  [section, dock, bar].every((entry) => entry && typeof entry.component === 'function'),
   'every occupant is a component',
 );
 
@@ -419,8 +414,8 @@ check(/chip:\s*false/.test(src), 'PRD FR-7 default is encoded in the shipped bun
 
 const noEvents = activate(null, { throwingOn: true });
 check(
-  noEvents.rec.registered.length === 7,
-  'when the event API throws, all seven seats are still registered',
+  noEvents.rec.registered.length === 6,
+  'when the event API throws, all six seats are still registered',
 );
 check(
   noEvents.rec.styleEls.length > 0 && noEvents.rec.styleEls[0].textContent.includes('--dsw-alias-bg-base:'),
@@ -428,7 +423,7 @@ check(
 );
 
 const refused = activate(null, { throwingRegister: true });
-check(refused.rec.injected.length === 7, 'when slot registration is refused, every seat is still attempted');
+check(refused.rec.injected.length === 6, 'when slot registration is refused, every seat is still attempted');
 check(refused.rec.overrides.length >= 4, 'when slot registration is refused, the layers are still pushed');
 
 const rendered = activate(null);
@@ -486,7 +481,7 @@ check(/与配色叠加/.test(panelText), 'the panel states that effects compose 
 check(/优先到下一时段/.test(panelText), 'the panel states that a manual pick only leads until the next boundary');
 check(panelText.includes('随机一套') && /锁配色/.test(panelText) && /锁效果/.test(panelText), 'the dice and its two locks are in the panel');
 check(/组合/.test(panelText), 'the dice states how many combinations exist');
-check(/会话标记/.test(panelText) && /行首竖杠/.test(panelText), 'session marks are documented in the panel');
+check(/会话标记/.test(panelText) && /行首/.test(panelText) && /竖杠/.test(panelText), 'session marks are documented in the panel');
 check(/上传头像|换头像/.test(panelText) && /改昵称/.test(panelText), 'the account row has an explicit edit path for avatar and nickname');
 check(/1MB/.test(panelText), 'the avatar entry limit is stated');
 
@@ -562,9 +557,9 @@ function findAction(node, label) {
   return null;
 }
 
-const diceSeat = rendered.rec.registered.find((r) => r.opts.name === 'main');
+const diceSeat = rendered.rec.registered.find((r) => r.opts.name === 'settings.section');
 const diceButton = findAction(diceSeat.component({ useSessions: (f) => f({ byId: {} }) }), '随机一套');
-check(Boolean(diceButton), 'the workbench exposes a direct 随机一套 action');
+check(Boolean(diceButton), 'the panel exposes a direct 随机一套 action');
 const overridesBefore = rendered.rec.overrides.length;
 if (diceButton) diceButton.args[1].onClick();
 check(
@@ -574,7 +569,7 @@ check(
 
 const lockedRoll = activate({ paletteId: 'lapis', finishes: [], locks: { palette: true, finish: false } });
 const lockedDice = findAction(
-  lockedRoll.rec.registered.find((r) => r.opts.name === 'main').component({}),
+  lockedRoll.rec.registered.find((r) => r.opts.name === 'settings.section').component({}),
   '随机一套',
 );
 if (lockedDice) lockedDice.args[1].onClick();
@@ -584,15 +579,58 @@ check(
   'a LOCKED palette survives a dice roll (the lock is honoured, not decorative)',
 );
 
-// --------------------------------------------------------------- the workbench icon itself
 
-const iconSeat = rendered.rec.registered.find((r) => r.opts.name === 'sidebar.panellist');
-check(Boolean(iconSeat.component({ size: 16, active: true })), 'the sidebar icon renders with the owner props it is given');
+
+// ---------------------------------- the blank-settings-page class of bug must not come back
+
+const sectionSeat = rendered.rec.registered.find((r) => r.opts.name === 'settings.section');
+check(collectText(sectionSeat.component({})).length > 20, 'the panel renders with NO props at all (settings.section hands none)');
 check(
-  collectText(iconSeat.component({ size: 16, active: false })).filter((x) => x !== 'span' && x !== 'svg' && x !== 'rect').length === 0,
-  'the icon is pure SVG — no stray text inside the sidebar button',
+  collectText(sectionSeat.component({ useSessions: () => { throw new Error('a host hook must never be called by this panel'); } })).length > 20,
+  'the panel calls no host hooks — a hook that exists in one seat but not another changes the hook count and blanks the page',
 );
+check(/gradientText:\s*false/.test(src), 'the shipped default keeps 正文渐变 OFF (it damaged inline code inside bold text)');
+check(
+  src.indexOf('strong :where(code,kbd,samp,a,em)') >= 0,
+  'even when enabled, the gradient restores descendant colours (no invisible code chips)',
+);
+check(src.indexOf('故障【render:') >= 0, 'a render failure is shown as text, not swallowed into a blank area');
+// --------------------------------------------- the footer quick entry (beside 插件广场)
 
+const footerSeat = rendered.rec.registered.find((r) => r.opts.name === 'sidebar.footer.action');
+check(Boolean(footerSeat) && footerSeat.opts.order === 9, 'the footer entry sits at order 9, right after skillhub-plaza (order 8)');
+const footerWide = collectText(footerSeat.component({ wide: true })).join(' ');
+check(footerWide.indexOf('多彩Harness') >= 0, 'wide sidebar: the button shows its label');
+const footerRail = collectText(footerSeat.component({ wide: false })).join(' ');
+check(footerRail.indexOf('多彩Harness') < 0, 'rail sidebar: the label is dropped, the icon stays');
+const footerNode = footerSeat.component({ wide: true });
+function findFooter(node) {
+  if (!node || typeof node !== 'object') return null;
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const hit = findFooter(child);
+      if (hit) return hit;
+    }
+    return null;
+  }
+  if (node.args) {
+    const props = node.args[1] || {};
+    if (props['data-dsh-footer']) return node;
+    for (const child of node.args.slice(2)) {
+      const hit = findFooter(child);
+      if (hit) return hit;
+    }
+  }
+  return null;
+}
+const footerButton = findFooter(footerNode);
+check(Boolean(footerButton), 'the footer entry renders a button');
+const footerBefore = rendered.rec.overrides.length;
+if (footerButton) footerButton.args[1].onClick();
+check(
+  rendered.rec.overrides.length > footerBefore,
+  'one click on the footer button rolls a new theme through the guarded paint path',
+);
 // ---------------------------------------------------------------------- data sanity
 
 check(palettesData.palettes.length === 22, 'bundle carries all 22 palettes');

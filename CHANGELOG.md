@@ -2,6 +2,41 @@
 
 本插件遵循语义化版本。`client.js` 是构建产物，源在 `src/`，改完跑 `node build.mjs`。
 
+## 0.9.10 — 2026-10-03
+
+按第一轮实机反馈修 4 处 + 落位到你要的位置。
+
+### 1. 快捷入口落到「插件广场」旁边（不是主导航）
+
+* 之前注册在 `sidebar.panellist`（主导航，和「插件」/「自动化任务」并列）——你说多余，**已移除**；
+* 现在注册在 **`sidebar.footer.action`**（order 9，紧挨 `skillhub-plaza`＝插件广场 order 8），与它平分侧栏底部那一条；
+* 该席位 ownerProps 只有 `{ wide }`（没有导航 API），所以按钮自带一个动作：**点一下＝随机一套**；tooltip 写明当前配色，窄栏（56px）自动只留图标。
+
+### 2. 正文渐变：从"档位副作用"改为"显式开关，默认关"
+
+实测它在真实对话里**弄坏了文字**：`strong` 上的渐变把 `color:transparent` **继承**给它内部的
+行内 `code`，而 `code` 自带浅底 → 渲染成一块**空白块**，只有选中才看得见文字。
+现在：默认关闭（面板里「正文渐变 开/关」），并且**即使开启**也给后代恢复颜色
+（`strong :where(code,kbd,samp,a,em)`），不会再出现隐形文字。
+
+### 3. 设置页空白：消除疑似根因 + 让故障可见
+
+* 面板此前会在渲染中调用**宿主 hook**（`useSessions`）——hook 数量在两个席位之间不一致时，
+  React 会抛错、整页空白。现在**面板不调用任何宿主 hook**（会话标记改由会话「…」菜单设置）；
+* `safeComponent` 失败时不再返回 `null`，而是**渲染出故障文字**（`故障【render:…】原因`），
+  并把故障同时写进控制台（有上限）——空白页再也藏不住原因。
+
+### 4. 浏览器自动化跑通（L4 前置）
+
+bsk 守护进程本机是靠**计划任务** `\BrowserSkillDaemon` 常驻的（`bsk.exe daemon start --foreground`，登录时启动）。
+它当时没在跑 → 我在宿主进程里无法拉起（Job Object 限制）→ 用 `schtasks /run` 启动该任务后
+`bsk status --json` 正常：daemon 0.3.2、Chrome 实例已连接。
+
+### 测试
+
+熔断 13 · 状态层 56 · WCAG 492 · bundle 冒烟 **122** = **683 项全绿**
+（新增：footer 席位及其宽/窄两态、点击随机、面板在**无任何 props** 与**宿主 hook 会抛错**的情况下仍须渲染）。
+
 ## 0.9.9 — 2026-10-03 · 首个准正式版（改名 多彩Harness）
 
 **改名**：`@local/dsh-theme-celadon` → **`dsh-colors`**（中文显示名**多彩Harness**）。同步改了 4 处标识（`package.json`、客户端 `SOURCE`、`cordis.patch.yml`、profile 依赖行与 bundles 列表），并**兼容读取旧存档 key**（`dsh-theme-celadon.state.v3/v2/v1`）——改名不会让你现有设置消失。许可证定为 **MIT**。

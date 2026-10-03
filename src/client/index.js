@@ -35,6 +35,14 @@ function recordFault(stage, err) {
   FAULT.message = err && err.message ? err.message : String(err);
   FAULT.at = Date.now();
   FAULT.count += 1;
+  // Also say it where a developer can see it: a silent catch once hid a broken seat for days.
+  try {
+    if (FAULT.count <= 10 && typeof console !== 'undefined' && console.error) {
+      console.error('[dsh-colors] ' + stage + ': ' + FAULT.message);
+    }
+  } catch (inner) {
+    /* logging must never break the plugin */
+  }
 }
 
 /**
@@ -100,8 +108,10 @@ function safeComponent(Component, label) {
     try {
       return Component(props);
     } catch (err) {
+      // Render the reason, do not swallow it into a blank area. A bare string is a valid
+      // React child, so this needs no element factory and cannot itself throw.
       recordFault('render:' + label, err);
-      return null;
+      return '故障【render:' + label + '】' + (err && err.message ? err.message : String(err));
     }
   };
 }
@@ -277,10 +287,11 @@ function createPlugin(deps) {
         const merged = mergeLayers([core, accents, finish.tokens, workspaceLayer, harmony, note]);
         css += cssFromMerged(merged);
         css += finish.css;
-        // 字体渐变 is carried by the ACCENT TIER, not by a separate switch: 克制档 keeps flat
-        // emphasis, 标准/张扬 use the theme gradient (both stops already contrast-checked).
+        // 字体渐变 is an EXPLICIT opt-in (default off): as a tier side effect it damaged real
+        // conversation text — a `strong` gradient made an inline `code` inside it inherit
+        // `color:transparent`, so the chip rendered as a blank block until selected.
         if (state.status.annotations) {
-          css += markdownNoteCss({ gradientText: state.tier !== 'gentle' });
+          css += markdownNoteCss({ gradientText: Boolean(state.status.gradientText) });
         }
         css += sessionMarkCss(state);
         setCss(css);
@@ -499,26 +510,22 @@ function createPlugin(deps) {
         recordFault('slot:settings-section', err);
       }
 
-      try {
-        ctx.slots.inject('sidebar.panellist', () =>
-          ctx.slots.register(
-            { name: 'sidebar.panellist', id: PANEL_ID, order: 100, label: '多彩Harness' },
-            safeComponent(createWorkbenchIcon({ h, paletteById, store }), 'panellist'),
-          ),
-        );
-      } catch (err) {
-        recordFault('slot:panellist', err);
-      }
+      // NOTE (0.9.10): the sidebar button + main-column workbench were REMOVED on request —
+      // the panel already lives in Settings, so a second entry in the main navigation was
+      // redundant. The seat pair (`sidebar.panellist` + `main`) is documented in
+      // docs/ARCHITECTURE.md for anyone who wants it back.
 
+      // The permanent quick entry: the SAME band as 插件广场 (skillhub-plaza, order 8), so this
+      // button lands right beside it (order 9) instead of in the main navigation.
       try {
-        ctx.slots.inject('main', () =>
+        ctx.slots.inject('sidebar.footer.action', () =>
           ctx.slots.register(
-            { name: 'main', key: PANEL_ID },
-            safeComponent(createWorkbench(panelDeps), 'workbench'),
+            { name: 'sidebar.footer.action', id: PANEL_ID, order: 9, label: '多彩Harness' },
+            safeComponent(createFooterAction({ h, store, runtime, paletteById }), 'footer-action'),
           ),
         );
       } catch (err) {
-        recordFault('slot:workbench', err);
+        recordFault('slot:footer-action', err);
       }
 
       try {

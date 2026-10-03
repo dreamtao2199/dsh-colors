@@ -1,7 +1,7 @@
 /**
  * GENERATED FILE — do not edit by hand.
  * Source of truth: src/ ; rebuild with `node build.mjs`.
- * dsh-colors v0.9.9
+ * dsh-colors v0.9.10
  */
 window.__ModuleLoader__.load({
   id: 'dsh-colors',
@@ -1154,6 +1154,13 @@ window.__ModuleLoader__.load({
       '}' +
       c + ' :where(h1,h2,h3,h4,h5,h6) strong{' +
       'background-image:none;-webkit-text-fill-color:currentColor;color:inherit;}' +
+      // A transparent `strong` passes transparency DOWN to its children: an inline `code` inside
+      // it kept its own (light) background and inherited `color:transparent`, rendering as a
+      // blank block until selected. Descendants therefore get their colour back explicitly.
+      c + ' strong :where(code,kbd,samp,a,em),' +
+      c + ' :where(h1,h2,h3,h4,h5,h6) :where(code,kbd,samp,a,em){' +
+      '-webkit-text-fill-color:currentColor;color:var(--dsw-alias-label-primary);' +
+      'background-clip:border-box;-webkit-background-clip:border-box;background-image:none;}' +
       '}'
     );
   }
@@ -1281,6 +1288,13 @@ window.__ModuleLoader__.load({
       /** The chip is opt-in; the seat still mounts because it carries the workspace signal. */
       chip: false,
       annotations: true,
+      /**
+       * 正文/标题渐变上色。Default CLOSED on purpose: as a tier side effect it damaged real
+       * conversation text — a `strong` gradient made an inline `code` inside it inherit
+       * `color:transparent`, so the chip rendered as a blank block until it was selected.
+       * It is now an explicit switch, and the CSS restores descendant colours regardless.
+       */
+      gradientText: false,
       /**
        * Harmonise the host's three semantic state colours (success / warn / error) toward the
        * active palette. The running indicator is deliberately NOT touched: its colour comes from
@@ -1610,26 +1624,6 @@ window.__ModuleLoader__.load({
   function markOptions(paletteById, state) {
     const palette = state && state.paletteId ? paletteById(state.paletteId) : null;
     return markColors(palette);
-  }
-
-  /** Flatten a `useSessions` snapshot into `[{ id, label }]`, defensively. */
-  function readSessions(props, limit) {
-    const max = limit || 40;
-    try {
-      if (!props || typeof props.useSessions !== 'function') return [];
-      const snapshot = props.useSessions((value) => value);
-      const byId = snapshot && snapshot.byId ? snapshot.byId : snapshot;
-      if (!byId || typeof byId !== 'object') return [];
-      return Object.keys(byId)
-        .slice(0, max)
-        .map((id) => {
-          const entry = byId[id] || {};
-          const label = entry.title || entry.name || entry.label || id;
-          return { id, label: String(label).slice(0, 28) };
-        });
-    } catch (err) {
-      return [];
-    }
   }
 
   /** One swatch button; shared by the menu seat and the panel. */
@@ -2014,6 +2008,81 @@ window.__ModuleLoader__.load({
 
   /* stripped for bundle */
 
+      /* ---- src/client/footer-action.js ---- */
+  /**
+   * Footer quick action (PRD FR-11): the permanent one-click entry for this plugin.
+   *
+   * Placement: `sidebar.footer.action` — the same band that already holds 插件广场
+   * (`skillhub-plaza`, order 8). Registering at order 9 puts this button right beside it, which
+   * is exactly the slot the user pointed at; the shipped cost meter / cordis panel live in the
+   * same band at orders 0–2.
+   *
+   * The seat's ownerProps are only `{ wide }` (no navigation helper), so the button must be
+   * self-contained: one click = 随机一套 (a new palette + effect). The tooltip names the palette
+   * currently in force, so the button doubles as a readout, and `wide === false` (56px rail)
+   * degrades to the icon alone.
+   *
+   * Bundling note: `@bundle:strip` blocks are test-only and removed by the bundler.
+   */
+
+  function createFooterAction(deps) {
+    const h = deps.h;
+    const store = deps.store;
+    const runtime = deps.runtime;
+    const paletteById = deps.paletteById;
+
+    return function FooterAction(props) {
+      const [state, setState] = React.useState(store.snapshot());
+      React.useEffect(() => store.subscribe((next) => setState(Object.assign({}, next))), []);
+      const wide = !props || props.wide !== false;
+      const palette = state.paletteId ? paletteById(state.paletteId) : null;
+      const brand = palette ? palette.light.brand : '#8A8F98';
+      const counter = palette && palette.noteAccent ? palette.noteAccent : '#B0781E';
+      const third = palette ? palette.light.sunken : '#F2F3F5';
+      const label = '多彩Harness';
+      const title = '随机换一套配色与效果（当前 ' + (palette ? palette.name : '官方原色') + '）';
+
+      return h(
+        'button',
+        {
+          type: 'button',
+          'data-dsh-chip': 'true',
+          'data-active': 'false',
+          'data-dsh-footer': 'true',
+          title,
+          'aria-label': title,
+          onClick: () => {
+            if (runtime.randomize) runtime.randomize();
+          },
+          style: {
+            appearance: 'none',
+            font: 'inherit',
+            fontSize: 12,
+            lineHeight: '18px',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '3px 8px',
+            borderRadius: 8,
+            cursor: 'pointer',
+            maxWidth: '100%',
+            overflow: 'hidden',
+          },
+        },
+        h(
+          'svg',
+          { viewBox: '0 0 24 24', width: 14, height: 14, focusable: 'false', 'aria-hidden': true },
+          h('rect', { x: 3.5, y: 6.5, width: 12, height: 12, rx: 3, fill: third, transform: 'rotate(-9 9 12)' }),
+          h('rect', { x: 6.5, y: 5, width: 12, height: 12, rx: 3, fill: counter, opacity: 0.92, transform: 'rotate(-2 12 11)' }),
+          h('rect', { x: 9.5, y: 4, width: 12, height: 12, rx: 3, fill: brand }),
+        ),
+        wide ? h('span', { style: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, label) : null,
+      );
+    };
+  }
+
+  /* stripped for bundle */
+
       /* ---- src/client/dock-signal.js ---- */
   /**
    * Session-aware signal + status chip, mounted under the composer.
@@ -2384,6 +2453,11 @@ window.__ModuleLoader__.load({
    *     reads as "that click did nothing", which is exactly what the action-shaped chips did;
    *   * destructive actions ask twice, without timers (the confirm state is component state).
    *
+   * This component calls NO host hooks: `settings.section` and a settings row hand different
+   * prop sets, and a hook that appears in one context but not the other changes the hook count
+   * between renders — React then throws and the whole page renders blank. The session-mark list
+   * therefore lives in the session's own "..." menu, not here.
+   *
    * Bundling note: `@bundle:strip` blocks are test-only and removed by the bundler.
    */
 
@@ -2494,9 +2568,6 @@ window.__ModuleLoader__.load({
       const manualName =
         manual.paletteId && paletteById(manual.paletteId) ? paletteById(manual.paletteId).name : null;
       const marks = state.sessionColors || {};
-      const sessions = readSessions(props, 24);
-      const markPalette = state.paletteId ? paletteById(state.paletteId) : null;
-      const markOptionsList = markColors(markPalette);
 
       // Expected vs actually applied. "Expected" is the exact value this plugin last WROTE for
       // the token (`runtime.diag.expectAccent`), never a value derived some other way: the old
@@ -2524,6 +2595,17 @@ window.__ModuleLoader__.load({
         'div',
         { style: { display: 'flex', flexDirection: 'column', gap: 2, padding: '2px 0' } },
 
+        h(
+          'div',
+          { style: { display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap', paddingBottom: 4 } },
+          h('div', { style: { fontSize: 16, fontWeight: 600, color: 'var(--dsw-alias-label-primary)' } }, '多彩Harness'),
+          h(
+            'div',
+            { style: HINT },
+            (activePalette ? activePalette.name + ' · ' + (activePalette.note || activePalette.source || '') : '官方原色') +
+              ' · 效果 ' + finishName,
+          ),
+        ),
         group('配色库', '22 套：Pantone 年度色 4 · 中国传统色 14 · 莫兰迪高级灰 4（仅浅色）', [
           chip('官方原色', !state.paletteId, () => store.selectPalette(null, currentWorkspaceId), 'official'),
         ].concat(
@@ -2571,8 +2653,16 @@ window.__ModuleLoader__.load({
           ),
         )),
 
-        group('作用范围', '控制配色重绘的元素范围；标准/张扬档启用字体渐变', tiers.map((t) =>
+        group('作用范围', '控制配色重绘的元素范围', tiers.map((t) =>
           chip(t.name, state.tier === t.id, () => store.patch({ tier: t.id }), t.id))),
+
+        h(
+          'div',
+          { style: ROW },
+          chip(state.status.gradientText ? '正文渐变 开' : '正文渐变 关', state.status.gradientText, () =>
+            store.patch({ status: Object.assign({}, state.status, { gradientText: !state.status.gradientText }) }), 'grad'),
+          h('span', { style: HINT }, '默认关；开启后标题与加粗走主题渐变'),
+        ),
 
         group('自动切换', '定时轮换与十二时辰互斥；手动选择优先到下一时段', [
           chip('关闭', state.interval === 'off' && !state.rhythm.enabled, () =>
@@ -2661,29 +2751,14 @@ window.__ModuleLoader__.load({
             )
           : h('div', { style: HINT }, '未检测到工作区；打开任一会话后自动识别'),
 
-        group('会话标记', '手动给单个对话上色，行首竖杠标出；未标记的保持素净', [
+        group('会话标记', '在会话行的「…」菜单里给单个对话上色，行首出现竖杠', [
           action('清除全部标记', () => store.patch({ sessionColors: {} }), 'marks-clear', 'normal', !Object.keys(marks).length),
         ]),
-
-        sessions.length
-          ? h(
-              'div',
-              { style: { display: 'flex', flexDirection: 'column', gap: 3, paddingLeft: 2 } },
-              sessions.map((session) =>
-                h(
-                  'div',
-                  { key: session.id, style: { display: 'flex', gap: 6, alignItems: 'center' } },
-                  h('span', { style: Object.assign({}, HINT, { width: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }) }, session.label),
-                  markOptionsList.map((color, index) =>
-                    swatchButton(h, color, marks[session.id] === color, () => {
-                      store.setSessionColor(session.id, marks[session.id] === color ? null : color);
-                      refresh();
-                    }, session.id + '-' + index),
-                  ),
-                ),
-              ),
-            )
-          : h('div', { style: HINT }, '会话列表由面板提供；打开任一会话后再看'),
+        h(
+          'div',
+          { style: HINT },
+          Object.keys(marks).length ? '已标记 ' + Object.keys(marks).length + ' 个对话（色板取自当前配色）' : '尚未标记任何对话',
+        ),
 
         group('账号行', '替换侧栏账号入口；停用即还原官方（含快速退出登录）', [
           chip(state.brand.enabled ? '自定义 开' : '自定义 关', state.brand.enabled, () =>
@@ -2771,153 +2846,6 @@ window.__ModuleLoader__.load({
 
   /* stripped for bundle */
 
-      /* ---- src/client/workbench.js ---- */
-  /**
-   * Workbench: the plugin's own place in the main column (PRD FR-11).
-   *
-   * Why a panel and not only a settings row: a theme system has ~10 groups — colours, effects,
-   * scope, schedule, workspaces, session marks, account, safety, diagnostics. The official
-   * `settings.general.item` seat is documented for "a single setting that needs no page of its
-   * own", so the panel moved to a `settings.section` page and, in parallel, became a
-   * `sidebar.panellist` + `main` pair — the same pattern the shipped 插件广场 / 计划 pane use,
-   * which is what puts a permanent, discoverable button in the main interface.
-   *
-   * The header carries at most three direct actions, deliberately: 随机一套 / 官方原色 /
-   * 安全模式. Everything else lives in the panel below it.
-   *
-   * Bundling note: `@bundle:strip` blocks are test-only and removed by the bundler.
-   */
-
-  function createWorkbench(deps) {
-    const h = deps.h;
-    const store = deps.store;
-    const runtime = deps.runtime;
-    const paletteById = deps.paletteById;
-    const Panel = createPanel(deps);
-
-    return function Workbench(props) {
-      const [state, setState] = React.useState(store.snapshot());
-      React.useEffect(() => store.subscribe((next) => setState(Object.assign({}, next))), []);
-      const palette = state.paletteId ? paletteById(state.paletteId) : null;
-      const refresh = () => setState(Object.assign({}, store.snapshot()));
-
-      const quick = (label, onClick, key, active) =>
-        h(
-          'button',
-          {
-            key,
-            type: 'button',
-            'data-dsh-action': 'true',
-            onClick,
-            style: {
-              appearance: 'none',
-              font: 'inherit',
-              fontSize: 12,
-              padding: '3px 12px',
-              borderRadius: 6,
-              cursor: 'pointer',
-            },
-          },
-          label,
-        );
-
-      return h(
-        'div',
-        { style: { display: 'flex', flexDirection: 'column', gap: 10, padding: '18px 22px', maxWidth: 960 } },
-        h(
-          'div',
-          { style: { display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' } },
-          h('div', { style: { fontSize: 18, fontWeight: 600, color: 'var(--dsw-alias-label-primary)' } }, '多彩Harness'),
-          h(
-            'div',
-            { style: { fontSize: 12, color: 'var(--dsw-alias-label-tertiary)' } },
-            palette ? palette.name + ' · ' + (palette.note || palette.source || '') : '官方原色',
-          ),
-        ),
-        h(
-          'div',
-          { style: { display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' } },
-          quick('随机一套', () => {
-            if (runtime.randomize) runtime.randomize();
-            refresh();
-          }, 'wb-dice'),
-          quick('官方原色', () => {
-            store.selectPalette(null, runtime.currentWorkspaceId ? runtime.currentWorkspaceId() : null);
-            refresh();
-          }, 'wb-official'),
-          quick(state.safeMode ? '安全模式 开' : '安全模式 关', () => {
-            store.patch({ safeMode: !state.safeMode });
-            refresh();
-          }, 'wb-safe'),
-        ),
-        h(Panel, props),
-      );
-    };
-  }
-
-  /**
-   * The sidebar icon: three stacked colour cards, painted with the ACTIVE theme's colours.
-   *
-   * This seat is ours to draw (`ownerProps` only hands `{ size, active }`), so the icon is a
-   * colour illustration rather than a monochrome glyph — and because it reads the live palette,
-   * the button itself changes when the theme does. `active` only modulates opacity: the host
-   * keeps full control of the label and the hit area.
-   */
-  function createWorkbenchIcon(deps) {
-    const h = deps.h;
-    const store = deps.store;
-    const paletteById = deps.paletteById;
-
-    return function WorkbenchIcon(props) {
-      const [state, setState] = React.useState(store.snapshot());
-      React.useEffect(() => store.subscribe((next) => setState(Object.assign({}, next))), []);
-      const size = (props && props.size) || 16;
-      const active = Boolean(props && props.active);
-      const palette = state.paletteId ? paletteById(state.paletteId) : null;
-      const brand = palette ? palette.light.brand : '#8A8F98';
-      const counter = palette && palette.noteAccent ? palette.noteAccent : '#B0781E';
-      const third = palette ? palette.light.sunken : '#F2F3F5';
-      const stroke = palette ? palette.light.border1 || palette.light.sunken : '#E6E8EB';
-
-      return h(
-        'span',
-        {
-          'data-dsh-workbench-icon': 'true',
-          'aria-hidden': true,
-          style: { display: 'inline-grid', placeItems: 'center', opacity: active ? 1 : 0.82 },
-        },
-        h(
-          'svg',
-          { viewBox: '0 0 24 24', width: size, height: size, focusable: 'false' },
-          h('rect', {
-            x: 3.5,
-            y: 6.5,
-            width: 12,
-            height: 12,
-            rx: 3,
-            fill: third,
-            stroke: stroke,
-            strokeWidth: 1,
-            transform: 'rotate(-9 9 12)',
-          }),
-          h('rect', {
-            x: 6.5,
-            y: 5,
-            width: 12,
-            height: 12,
-            rx: 3,
-            fill: counter,
-            opacity: 0.92,
-            transform: 'rotate(-2 12 11)',
-          }),
-          h('rect', { x: 9.5, y: 4, width: 12, height: 12, rx: 3, fill: brand }),
-        ),
-      );
-    };
-  }
-
-  /* stripped for bundle */
-
       /* ---- src/client/index.js ---- */
   /**
    * Plugin assembly: state → CSS variables (+ the sanctioned service path) → slots.
@@ -2956,6 +2884,14 @@ window.__ModuleLoader__.load({
     FAULT.message = err && err.message ? err.message : String(err);
     FAULT.at = Date.now();
     FAULT.count += 1;
+    // Also say it where a developer can see it: a silent catch once hid a broken seat for days.
+    try {
+      if (FAULT.count <= 10 && typeof console !== 'undefined' && console.error) {
+        console.error('[dsh-colors] ' + stage + ': ' + FAULT.message);
+      }
+    } catch (inner) {
+      /* logging must never break the plugin */
+    }
   }
 
   /**
@@ -3021,8 +2957,10 @@ window.__ModuleLoader__.load({
       try {
         return Component(props);
       } catch (err) {
+        // Render the reason, do not swallow it into a blank area. A bare string is a valid
+        // React child, so this needs no element factory and cannot itself throw.
         recordFault('render:' + label, err);
-        return null;
+        return '故障【render:' + label + '】' + (err && err.message ? err.message : String(err));
       }
     };
   }
@@ -3198,10 +3136,11 @@ window.__ModuleLoader__.load({
           const merged = mergeLayers([core, accents, finish.tokens, workspaceLayer, harmony, note]);
           css += cssFromMerged(merged);
           css += finish.css;
-          // 字体渐变 is carried by the ACCENT TIER, not by a separate switch: 克制档 keeps flat
-          // emphasis, 标准/张扬 use the theme gradient (both stops already contrast-checked).
+          // 字体渐变 is an EXPLICIT opt-in (default off): as a tier side effect it damaged real
+          // conversation text — a `strong` gradient made an inline `code` inside it inherit
+          // `color:transparent`, so the chip rendered as a blank block until selected.
           if (state.status.annotations) {
-            css += markdownNoteCss({ gradientText: state.tier !== 'gentle' });
+            css += markdownNoteCss({ gradientText: Boolean(state.status.gradientText) });
           }
           css += sessionMarkCss(state);
           setCss(css);
@@ -3420,26 +3359,22 @@ window.__ModuleLoader__.load({
           recordFault('slot:settings-section', err);
         }
 
-        try {
-          ctx.slots.inject('sidebar.panellist', () =>
-            ctx.slots.register(
-              { name: 'sidebar.panellist', id: PANEL_ID, order: 100, label: '多彩Harness' },
-              safeComponent(createWorkbenchIcon({ h, paletteById, store }), 'panellist'),
-            ),
-          );
-        } catch (err) {
-          recordFault('slot:panellist', err);
-        }
+        // NOTE (0.9.10): the sidebar button + main-column workbench were REMOVED on request —
+        // the panel already lives in Settings, so a second entry in the main navigation was
+        // redundant. The seat pair (`sidebar.panellist` + `main`) is documented in
+        // docs/ARCHITECTURE.md for anyone who wants it back.
 
+        // The permanent quick entry: the SAME band as 插件广场 (skillhub-plaza, order 8), so this
+        // button lands right beside it (order 9) instead of in the main navigation.
         try {
-          ctx.slots.inject('main', () =>
+          ctx.slots.inject('sidebar.footer.action', () =>
             ctx.slots.register(
-              { name: 'main', key: PANEL_ID },
-              safeComponent(createWorkbench(panelDeps), 'workbench'),
+              { name: 'sidebar.footer.action', id: PANEL_ID, order: 9, label: '多彩Harness' },
+              safeComponent(createFooterAction({ h, store, runtime, paletteById }), 'footer-action'),
             ),
           );
         } catch (err) {
-          recordFault('slot:workbench', err);
+          recordFault('slot:footer-action', err);
         }
 
         try {

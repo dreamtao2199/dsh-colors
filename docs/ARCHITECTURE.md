@@ -44,8 +44,8 @@ DSH 插件 = 一个 **bundle**（npm 包形状）。本包有两个半边：
 | 席位 | kind | 我们的用途 | 关键约束 |
 |---|---|---|---|
 | `settings.section` | list | 完整控制面板（一页） | `{ id, order, label }` |
-| `sidebar.panellist` | list | 侧栏常驻按钮（与「插件广场」并排） | `{ id, order, label }`；**id 要与 `main` 的 key 一致** |
-| `main` | keyed | 工作台整页 | `{ key }`；官方占用了 `conversation`/`plugins`/`schedules` |
+| `sidebar.footer.action` | list | **侧栏底部快捷入口**（与「插件广场」并排） | `{ id, order, label }`；order 9 紧邻 skillhub-plaza 的 8；ownerProps 只有 `{ wide }`，**没有导航 API**，所以按钮自带动作＝随机一套 |
+| ~~`sidebar.panellist` + `main`~~ |  — | 0.9.10 **移除**（主导航里再放一个入口与设置页重复） | 要恢复：`{ name: 'sidebar.panellist', id, order, label }` + `{ name: 'main', key: <同 id> }` |
 | `conversation.composer.dock` | list | 状态采集 + 可选状态条 | ownerProps 给 `sessionId`/`useSession` |
 | `shell.overlay` | list | 帧顶工作区色条 | 层本身 click-through，`pointer-events:none` |
 | `sidebar.session.row.leading` | list | 会话标记竖杠 | **官方只在"该行空闲"时挂载**，运行中会消失 |
