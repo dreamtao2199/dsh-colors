@@ -1,6 +1,6 @@
 package : dsh-colors
 version : 0.9.11
 files   : 42
-built   : 2026-10-03T14:45:28.251Z
+built   : 2026-10-05T04:55:58.340Z
 node    : v24.15.0
 platform: win32 x64
