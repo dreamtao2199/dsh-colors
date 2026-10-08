@@ -256,6 +256,7 @@ description:
 | 清单自校验失败 | 改了文件没重生成清单 | 跑 `tools/make-manifest.mjs` 再提交 |
 | 部署后仓库 `.git` 没了 | 部署脚本删过目标目录 | 恢复：`git init` → `git fetch --depth 1` → `git reset origin/main`；并**永久删掉那句删除命令** |
 | `web_fetch` 报 "non-public IP" | 本机 DNS 是 **fake-ip**（`198.18.0.0/15`），而抓取工具有"非公网地址拒取"的防 SSRF 检查 | 见 §12 说明；临时用"走系统代理的命令行抓取"替代，或把域名加进代理的 `fake-ip-filter` |
+| `git push` 报 `Connection was reset` / `Could not connect to server` | **同一个 fake-ip 根因**：git/curl 默认**不走** Windows 系统代理（而 .NET / PowerShell 会走，所以出现"命令行能调 API、git 却推不动"的怪现象） | 让**这一条命令**走代理，不动任何配置：`git -c http.proxy=http://127.0.0.1:7890 -c https.proxy=http://127.0.0.1:7890 push origin main`（实测：直连失败 → 加代理参数即成功） |
 
 ---
 
